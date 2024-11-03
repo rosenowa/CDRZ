@@ -1,0 +1,32 @@
+library(tidyverse)
+library(tidylog)
+library(janitor)
+library(here)
+
+
+# Read in raw data with cdrz tracts
+cdrz_data = read.csv(here("data", "data-raw", "cdrz_raw_fema.csv")) %>% 
+  clean_names() %>% 
+  mutate(geoid = str_pad(geoid20, 11, "left", "0"),
+         state_fips = str_pad(state_fips, 2, "left", "0"),
+         county_fips = str_pad(county_fips, 3, "left", "0"),
+         county_code = str_c(state_fips, county_fips),
+         cdrz = 1)  
+
+# list of cdrz tracts to filter on
+cdrz_tracts <- cdrz_data %>% pull(geoid)
+
+# list of county tract combinations
+cdrz_counties <- cdrz_data %>% 
+  select(geoid, county_code) 
+
+# list of county tract combinations - wide format so one row per county
+cdrz_counties_wide <- cdrz_data %>% 
+  select(geoid, county_code) %>% 
+  group_by(county_code) %>% 
+  mutate(n = 1:n()) %>% 
+  # one row per county
+  pivot_wider(id_cols = county_code, 
+              names_from = n, 
+              names_glue = "cdrz_{n}", 
+              values_from = geoid)
