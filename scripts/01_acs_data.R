@@ -343,7 +343,13 @@ sbp_cdrz<- acs_cdrz_geography %>%
                                                 "Lamar County", "Marion County", "Pearl River County", "Perry County", "Stone County", 
                                                 "Wayne County"))|
            (state_abbreviation == "FL" & county_name == "Charlotte County")) %>% 
-  mutate(partner = "sbp")
+  mutate(partner = "sbp", 
+         grouped = case_when(
+           state_abbreviation == "MS" ~ "Southern Mississippi Planning District",
+           state_abbreviation == "TX" & county_name %in% c("Orange County", "Jefferson County", "Hardin County", "Jasper County") ~ "Southeast Texas Regional Planning Commission", 
+           state_abbreviation == "TX" & !county_name %in% c("Orange County", "Jefferson County", "Hardin County", "Jasper County") ~ "Texas State's General Land Office (GLO)",
+           state_abbreviation == "SC" ~ "Berkeley-Charleston-Dorchester Council of Government (BCDCOG)")
+           )
 
 ################################################################################
 ################################################################################
@@ -465,7 +471,7 @@ rural_urban = read.csv(here("data", "data-raw", "rural_urban_continuum_code_2023
   select(county_fips, urban_designation)
 
 # joining rural urban with acs demographic tracts
-acs_cdrz_geography_rural_urban <- acs_cdrz_geography %>%
+acs_cdrz_geography_rural_urban <- walmart_cdrzs %>%
  left_join(rural_urban, by = c("county_fips" = "county_fips")) 
 
 ################################################################################
@@ -526,16 +532,9 @@ combined_footprint_row <- walmart_cdrzs_nri %>%
     per_65_over = mean(per_65_over, na.rm = TRUE),
     per_non_hisp_white = mean(per_non_hisp_white, na.rm = TRUE),
     per_non_white = mean(per_non_white, na.rm = TRUE),
-    per_non_hisp_black = mean(per_non_hisp_black, na.rm = TRUE),
-    per_non_hisp_native = mean(per_non_hisp_native, na.rm = TRUE),
-    per_non_hisp_pi = mean(per_non_hisp_pi, na.rm = TRUE),
-    per_non_hisp_two = mean(per_non_hisp_two, na.rm = TRUE),
-    per_hisp = mean(per_hisp, na.rm = TRUE),
-    per_h_owner = mean(per_h_owner, na.rm = TRUE),
     median_hh_income = mean(median_hh_income, na.rm = TRUE),
     per_broadband = mean(per_broadband, na.rm = TRUE), 
-    per_rural = sum(urban_designation == "rural")/n(),
-    state = paste(unique(state_abbreviation), collapse = ", ")) 
+    per_rural = sum(urban_designation == "rural")/n()) 
 
 geos_footprint_row <- walmart_cdrzs_nri %>% 
   filter(partner == "geos") %>%  
@@ -546,16 +545,9 @@ geos_footprint_row <- walmart_cdrzs_nri %>%
     per_65_over = mean(per_65_over, na.rm = TRUE),
     per_non_hisp_white = mean(per_non_hisp_white, na.rm = TRUE),
     per_non_white = mean(per_non_white, na.rm = TRUE),
-    per_non_hisp_black = mean(per_non_hisp_black, na.rm = TRUE),
-    per_non_hisp_native = mean(per_non_hisp_native, na.rm = TRUE),
-    per_non_hisp_pi = mean(per_non_hisp_pi, na.rm = TRUE),
-    per_non_hisp_two = mean(per_non_hisp_two, na.rm = TRUE),
-    per_hisp = mean(per_hisp, na.rm = TRUE),
-    per_h_owner = mean(per_h_owner, na.rm = TRUE),
     median_hh_income = mean(median_hh_income, na.rm = TRUE),
     per_broadband = mean(per_broadband, na.rm = TRUE), 
-    per_rural = sum(urban_designation == "rural")/n(),
-    state = paste(unique(state_abbreviation), collapse = ", ")) 
+    per_rural = sum(urban_designation == "rural")/n()) 
 
 sbp_footprint_row <- walmart_cdrzs_nri %>% 
   filter(partner == "sbp") %>%  
@@ -566,16 +558,9 @@ sbp_footprint_row <- walmart_cdrzs_nri %>%
     per_65_over = mean(per_65_over, na.rm = TRUE),
     per_non_hisp_white = mean(per_non_hisp_white, na.rm = TRUE),
     per_non_white = mean(per_non_white, na.rm = TRUE),
-    per_non_hisp_black = mean(per_non_hisp_black, na.rm = TRUE),
-    per_non_hisp_native = mean(per_non_hisp_native, na.rm = TRUE),
-    per_non_hisp_pi = mean(per_non_hisp_pi, na.rm = TRUE),
-    per_non_hisp_two = mean(per_non_hisp_two, na.rm = TRUE),
-    per_hisp = mean(per_hisp, na.rm = TRUE),
-    per_h_owner = mean(per_h_owner, na.rm = TRUE),
     median_hh_income = mean(median_hh_income, na.rm = TRUE),
     per_broadband = mean(per_broadband, na.rm = TRUE), 
-    per_rural = sum(urban_designation == "rural")/n(),
-    state = paste(unique(state_abbreviation), collapse = ", "))
+    per_rural = sum(urban_designation == "rural")/n())
 
 #all_cdrzs_full_data <- walmart_cdrzs_nri 
 
@@ -588,15 +573,78 @@ all_cdrzs_row_total <- all_cdrzs_full_data %>%
     per_non_hisp_white = mean(per_non_hisp_white, na.rm = TRUE),
     per_non_white = mean(per_non_white, na.rm = TRUE),
     per_non_hisp_black = mean(per_non_hisp_black, na.rm = TRUE),
-    per_non_hisp_native = mean(per_non_hisp_native, na.rm = TRUE),
-    per_non_hisp_pi = mean(per_non_hisp_pi, na.rm = TRUE),
-    per_non_hisp_two = mean(per_non_hisp_two, na.rm = TRUE),
-    per_hisp = mean(per_hisp, na.rm = TRUE),
-    per_h_owner = mean(per_h_owner, na.rm = TRUE),
     median_hh_income = mean(median_hh_income, na.rm = TRUE),
     per_broadband = mean(per_broadband, na.rm = TRUE), 
-    per_rural = sum(urban_designation == "rural", na.rm= TRUE)/n(),
-    state = paste(unique(state_abbreviation), collapse = ", "))
+    per_rural = sum(urban_designation == "rural", na.rm= TRUE)/n())
+
+
+
+#####################################################################################
+#####################################################################################
+#####################################################################################
+#################  DEMOGRAPHIC BREAKDOWNS FOR SBP AND GEOS###########################
+#####################################################################################
+#####################################################################################
+#####################################################################################
+
+
+
+geos_summary <- walmart_cdrzs_nri %>% 
+  filter(partner == "geos") %>%  
+  group_by(county_fips) %>%
+  summarize(
+    partner = "GEOs Institute",
+    cdrz_count = n(),
+    designation_date = first(cdrz_designation_date),
+    county_name = first(county_name), 
+    state_name = first(state), 
+    state_abbreviation = first(state_abbreviation),
+    region = first(region),
+    navigator_name = str_c(unique(navigator_name), collapse = ", "),
+    grouped =  str_c(unique(grouped), collapse = ", "),
+    urban_designation = first(urban_designation),
+    risk_rating_average = mean(RISK_SCORE, na.rm = TRUE), 
+    expected_annual_loss_averge = mean(EAL_SCORE, na.rm = TRUE), 
+    social_vulnerability_average = mean(SOVI_SCORE, na.rm = TRUE),
+    community_resilience_average = mean(RESL_SCORE, na.rm = TRUE),
+    total_pop_by_county = sum(total_pop, na.rm =TRUE),
+    across( 
+      .cols = c(starts_with("per_"), median_hh_income), 
+      .fns = mean, 
+      .names = "mean_{.col}"))
+write_csv(geos_summary, "geos_summary.cvs")
+
+  
+sbp_summary <- walmart_cdrzs_nri %>% 
+  filter(partner == "sbp") %>%  
+  group_by(county_fips) %>%
+  summarize(
+    partner = "SBP",
+    cdrz_count = n(),
+    designation_date = first(cdrz_designation_date),
+    county_name = first(county_name), 
+    state_name = first(state), 
+    state_abbreviation = first(state_abbreviation),
+    region = first(region),
+    navigator_name = str_c(unique(navigator_name), collapse = ", "),
+    grouped =  str_c(unique(grouped), collapse = ", "),
+    urban_designation = first(urban_designation),
+    risk_rating_average = mean(RISK_SCORE, na.rm = TRUE), 
+    expected_annual_loss_averge = mean(EAL_SCORE, na.rm = TRUE), 
+    social_vulnerability_average = mean(SOVI_SCORE, na.rm = TRUE),
+    community_resilience_average = mean(RESL_SCORE, na.rm = TRUE),
+    total_pop_by_county = sum(total_pop, na.rm =TRUE),
+    across( 
+      .cols = c(starts_with("per_"), median_hh_income), 
+      .fns = mean, 
+      .names = "mean_{.col}"))    
+   
+write_csv(sbp_summary, "sbp_summary.cvs")
+
+
+combined_sbp_geos_cdrz_data <- rbind(geos_summary, sbp_summary)
+
+write_csv(combined_sbp_geos_cdrz_data, "combined_sbp_geos_cdrz_data.cvs")
 
 
 
@@ -623,122 +671,5 @@ all_cdrzs_row_total <- all_cdrzs_full_data %>%
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# FULL COMBINED FILE ------------------------------------------------------
-
-
-# overall values - national numbers for acs data
-full_cdrz <- acs_data %>% 
-  mutate(county_fips = str_c(STATEFP, COUNTYFP)) %>% 
-  # join rural urban designation
-  left_join(rural_urban, by = c("county_fips")) %>% 
-  # filter to just cdrz tracts
-  filter(geoid %in% cdrz_tracts) %>% 
-  select(-geometry) 
-
-# save to box
-write_csv(full_cdrz, paste0(box_path, "/Final/cdrz_acs_data_full.csv"))
-
-# SUMMARY TABLES ----------------------------------------------------------
-
-# overall values - national numbers for acs data
-overall <- acs_data %>% 
-  left_join(rural_urban, by = c("geoid" = "tract_2020")) %>% 
-  summarise(total_pop = sum(total_pop, na.rm = TRUE),
-            across(c(starts_with("per_"), median_hh_income), ~mean(.x, na.rm = TRUE)), 
-            per_urban = sum(ruca_code == "urban")/n(), 
-            per_rural = sum(ruca_code == "rural")/n())  %>% 
-  mutate(
-    region = "Overall", 
-    across(starts_with("per_"), ~.x*100), 
-    across(-region, ~round(.x, 1))) %>% 
-  # reformat table to be more readable
-  gather(variable, value, -region) %>% 
-  spread(region, value)
-
-# regional values - regional numbers for acs data
-region_nums <- acs_data %>%  
-  left_join(rural_urban, by = c("geoid" = "tract_2020")) %>% 
-  group_by(region) %>% 
-  summarise(total_pop = sum(total_pop, na.rm = TRUE),
-            across(c(starts_with("per_"), median_hh_income), ~mean(.x, na.rm = TRUE)), 
-            per_urban = sum(ruca_code == "urban")/n(), 
-            per_rural = sum(ruca_code == "rural")/n()) %>% 
-  mutate(across(starts_with("per_"), ~.x*100), 
-         across(-region, ~round(.x, 1))) %>% 
-  # reformat table to be more readable
-  gather(variable, value, -region) %>% 
-  spread(region, value) %>% 
-  left_join(overall) 
-
-# overall numbers for all cdrz tracts
-overall_cdrz <- acs_data %>%  
-  left_join(rural_urban, by = c("geoid" = "tract_2020")) %>% 
-  # check 2 missing cdrz
-  filter(geoid %in% cdrz_tracts) %>% 
-  summarise(total_pop = sum(total_pop, na.rm = TRUE),
-            across(c(starts_with("per_"), median_hh_income), ~mean(.x, na.rm = TRUE)), 
-            per_urban = sum(ruca_code == "urban")/n(), 
-            per_rural = sum(ruca_code == "rural")/n()) %>% 
-  mutate(region = "Overall",
-         across(starts_with("per_"), ~.x*100), 
-         across(-region, ~round(.x, 1))) %>% 
-  # reformat table to be more readable
-  gather(variable, value, -region) %>% 
-  spread(region, value)
-
-# values for each region of cdrz tracts
-cdrz_regions <- acs_data %>%  
-  left_join(rural_urban, by = c("geoid" = "tract_2020")) %>% 
-  # check 2 missing cdrz
-  filter(geoid %in% cdrz_tracts) %>% 
-  group_by(region) %>% 
-  summarise(total_pop = sum(total_pop, na.rm = TRUE),
-            across(c(starts_with("per_"), median_hh_income), ~mean(.x, na.rm = TRUE)),
-            per_urban = sum(ruca_code == "urban")/n(), 
-            per_rural = sum(ruca_code == "rural")/n()) %>% 
-  mutate(across(starts_with("per_"), ~.x*100), 
-         across(-region, ~round(.x, 1))) %>% 
-  # reformat table to be more readable
-  gather(variable, value, -region) %>% 
-  spread(region, value) %>% 
-  left_join(overall_cdrz) 
-
-
-# difference between cdrz regions and national numbers
-region_dif <- left_join(region_nums, cdrz_regions, by = "variable") %>% 
-  mutate(overall_dif = Overall.y - Overall.x, 
-         midwest_dif = Midwest.y - Midwest.x, 
-         northeast_dif = Northeast.y - Northeast.x, 
-         south_dif = South.y - South.x, 
-         west_dif = West.y - West.x) %>% 
-  rename_with(~ gsub(".x", "", .x), ends_with(".x")) %>% 
-  rename_with(~ gsub(".y", "_cdrz", .x), ends_with(".y")) 
-
-# save to box
-write_csv(region_dif, file.path(box_path, "Final", "cdrz_acs_demographics.csv"))
 
 
