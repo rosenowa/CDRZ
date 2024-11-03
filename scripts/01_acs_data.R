@@ -18,6 +18,7 @@ library(tidycensus)
 library(purrr)
 library(sf)
 library(skimr)
+library(writexl)
 
 # source box link and cdrz tracts
 source(here("scripts", "utilities.R"))
@@ -280,7 +281,7 @@ acs_cdrz <- cdrz_data %>%
   left_join(acs_demographics_clean %>% select(-state_fips, -tract_fips, -state_name), by = "geoid") 
 
 # save ACS demographics csv
-write_csv(acs_demographics_clean, "acs_demographic_clean.csv")
+write_xlsx(acs_demographics_clean, "acs_demographic_clean.csv")
 
 
 ###################################################################################
@@ -442,7 +443,7 @@ cobined_footprint_table <- walmart_cdrzs %>%
     county_names = str_c(unique(county), collapse = ", "),
     CDRZs_geoids = str_c(geoid, collapse = ", ")) 
 
-write_csv(cobined_footprint_table, "cobined_footprint_table.csv")
+write_xlsx(cobined_footprint_table, "cobined_footprint_table.csv")
 
 
 
@@ -612,7 +613,7 @@ geos_summary <- walmart_cdrzs_nri %>%
       .cols = c(starts_with("per_"), median_hh_income), 
       .fns = mean, 
       .names = "mean_{.col}"))
-write_csv(geos_summary, "geos_summary.cvs")
+write_xlsx(geos_summary, "geos_summary.cvs")
 
   
 sbp_summary <- walmart_cdrzs_nri %>% 
@@ -639,12 +640,12 @@ sbp_summary <- walmart_cdrzs_nri %>%
       .fns = mean, 
       .names = "mean_{.col}"))    
    
-write_csv(sbp_summary, "sbp_summary.cvs")
+write_xlsx(sbp_summary, "sbp_summary.cvs")
 
 
 combined_sbp_geos_cdrz_data <- rbind(geos_summary, sbp_summary)
 
-write_csv(combined_sbp_geos_cdrz_data, "combined_sbp_geos_cdrz_data.cvs")
+write_xlsx(combined_sbp_geos_cdrz_data, "combined_sbp_geos_cdrz_data.cvs")
 
 
 
