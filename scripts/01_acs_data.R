@@ -20,6 +20,7 @@ library(sf)
 library(skimr)
 library(writexl)
 
+
 # source box link and cdrz tracts
 source(here("scripts", "utilities.R"))
 
@@ -329,11 +330,48 @@ missing <- acs_cdrz %>% filter(is.na(total_pop))
 
 ################################################################################
 ################################################################################
+###########################    SBP + GEOS FOOTPRINT    #########################
+################################################################################
+################################################################################
+################################################################################
+acs_geography <- acs_demographics_clean %>%
+  # join tract_sf
+  left_join(tract_sf %>% select(GEOID, NAMELSADCO, STUSPS, geometry, STATE_NAME, STATEFP, COUNTYFP), by = c("geoid" = "GEOID")) %>% 
+  # code in regions
+  mutate(region = case_when(
+    STATE_NAME %in% northeast ~ "Northeast", 
+    STATE_NAME %in% midwest ~ "Midwest", 
+    STATE_NAME %in% south ~ "South", 
+    STATE_NAME %in% west ~ "West" ))%>% 
+  #creating a county_fips column for the acs_demographics_tract dataset to use when joining the rural urban dataset
+  mutate(county_fips = paste0(STATEFP, COUNTYFP)) %>% 
+  rename(county_name = NAMELSADCO,
+         state_abbreviation = STUSPS) %>% select(-COUNTYFP,-STATEFP, -STATE_NAME)
+
+
+
+spb_geos_counties <- acs_geography %>% 
+  filter((state_abbreviation == "TX")| ## county_name %in% c("Orange County", "Jefferson County", "Hardin County", "Jasper County")) |
+           (state_abbreviation == "AL" & county_name == "Mobile County") |
+           (state_abbreviation == "SC" & county_name %in% c("Berkeley County", "Dorchester County", "Charleston County", "Beaufort County",  "Horry County")) |
+           (state_abbreviation == "MS" & county_name %in% c("Covington County", "Forrest County", "George County", "Greene County", "Hancock County", 
+                                                            "Harrison County", "Jackson County", "Jefferson Davis County", "Jones County", 
+                                                            "Lamar County", "Marion County", "Pearl River County", "Perry County", "Stone County", 
+                                                            "Wayne County"))|
+          (state_abbreviation == "NC" & county_name %in% c("Beaufort County", "Carteret County", "Craven County", "Dare County", "Hyde County", 
+                                                          "New Hanover County", "Onslow County", "Sampson County",
+                                                          "Tyrrell County", "Washington County"))  | 
+           (state_abbreviation == "GA" & county_name %in% c("Bulloch County", "Chatham County","Liberty County", "McIntosh County", "Seminole County", "Wayne County")) |
+           (state_abbreviation == "FL" & county_name %in% c( "Bay County", "Brevard County", "Broward County", "Charlotte County", "Collier County",  "DeSoto County",
+                                                             "Hendry County", "Hillsborough County", "Indian River County", "Martin County", "Miami-Dade County", "Palm Beach County",
+                                                             "Pinellas County", "St. Lucie County", "Washington County")))
+
+
+################################################################################
+################################################################################
 ###########################    SBP FOOTPRINT    ################################
 ################################################################################
-################################################################################
-#filtering the cdrzs overseen by SBP (Mississippi and Texas= all CDRZs, South Carolina = all CDRZ in Berkeley-Dorchester-Charleston COG, Florida= Charlotte County, Alabama = City of Mobile) 54walmart
-
+################################################################################ 
 
 sbp_cdrz<- acs_cdrz_geography %>%
   filter((state_abbreviation == "TX")| ## county_name %in% c("Orange County", "Jefferson County", "Hardin County", "Jasper County")) |
@@ -589,6 +627,15 @@ all_cdrzs_row_total <- all_cdrzs_full_data %>%
 #####################################################################################
 
 
+summary_acs_county <- spb_geos_counties %>% 
+  group_by(county_fips) %>% 
+  summarize(
+    state_name = first(state_name),
+    county_name = first(county_name),
+    county_population = sum(total_pop, na.rm = TRUE),
+    county_fips = first(county_fips)) 
+    
+
 
 geos_summary <- walmart_cdrzs_nri %>% 
   filter(partner == "geos") %>%  
@@ -596,6 +643,7 @@ geos_summary <- walmart_cdrzs_nri %>%
   summarize(
     partner = "GEOs Institute",
     cdrz_count = n(),
+    county_fips = first(county_fips), 
     designation_date = first(cdrz_designation_date),
     county_name = first(county_name), 
     state_name = first(state), 
@@ -608,12 +656,12 @@ geos_summary <- walmart_cdrzs_nri %>%
     expected_annual_loss_averge = mean(EAL_SCORE, na.rm = TRUE), 
     social_vulnerability_average = mean(SOVI_SCORE, na.rm = TRUE),
     community_resilience_average = mean(RESL_SCORE, na.rm = TRUE),
-    total_pop_by_county = sum(total_pop, na.rm =TRUE),
+    total_pop_in_cdrzs = sum(total_pop, na.rm =TRUE),
     across( 
       .cols = c(starts_with("per_"), median_hh_income), 
       .fns = mean, 
       .names = "mean_{.col}"))
-write_xlsx(geos_summary, "geos_summary.cvs")
+write_xlsx(geos_summary, "geos_summary.xlsx")
 
   
 sbp_summary <- walmart_cdrzs_nri %>% 
@@ -622,6 +670,7 @@ sbp_summary <- walmart_cdrzs_nri %>%
   summarize(
     partner = "SBP",
     cdrz_count = n(),
+    county_fips = first(county_fips), 
     designation_date = first(cdrz_designation_date),
     county_name = first(county_name), 
     state_name = first(state), 
@@ -634,18 +683,20 @@ sbp_summary <- walmart_cdrzs_nri %>%
     expected_annual_loss_averge = mean(EAL_SCORE, na.rm = TRUE), 
     social_vulnerability_average = mean(SOVI_SCORE, na.rm = TRUE),
     community_resilience_average = mean(RESL_SCORE, na.rm = TRUE),
-    total_pop_by_county = sum(total_pop, na.rm =TRUE),
+    total_pop_in_cdrzs = sum(total_pop, na.rm =TRUE),
     across( 
       .cols = c(starts_with("per_"), median_hh_income), 
       .fns = mean, 
       .names = "mean_{.col}"))    
    
-write_xlsx(sbp_summary, "sbp_summary.cvs")
+write_xlsx(sbp_summary, "sbp_summary.xlsx")
 
 
 combined_sbp_geos_cdrz_data <- rbind(geos_summary, sbp_summary)
+  
+combined_sbp_geos_cdrz_data <- summary_acs_county %>% select(county_population, county_fips) %>% left_join(combined_sbp_geos_cdrz_data, by = "county_fips") %>% group_by(county_fips) %>% filter(!is.na(partner))
 
-write_xlsx(combined_sbp_geos_cdrz_data, "combined_sbp_geos_cdrz_data.cvs")
+write_xlsx(combined_sbp_geos_cdrz_data, "combined_sbp_geos_cdrz_data.xlsx")
 
 
 
