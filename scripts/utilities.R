@@ -18,19 +18,7 @@ cdrz_full_data = read.csv(here("data", "data-raw", "cdrz", "cdrz_raw_fema_2024.c
   rename(geoid = geoid20,
          tribal_name = namelsad)
 
-cdrz_data <- cdrz_full_data %>% filter(cdrz_designation_date != "August 2, 2024")
-cdrz_tribal_territory_data <- cdrz_full_data %>% filter(cdrz_designation_date == "August 2, 2024")
-cdrz_tribal_data <-cdrz_tribal_territory_data %>% filter(is.na(state_fips))
-cdrz_territory_data <-cdrz_tribal_territory_data %>% filter(!is.na(state_fips))
-
-territory_count <- cdrz_territory_data %>% 
-  group_by(state) %>% 
-  summarize(cdrzs_count = n())
-
-tribal_count <- cdrz_tribal_data %>% 
-  group_by(tribal_name) %>% 
-  summarize(cdrzs_count = n())
-
+cdrz_data <- cdrz_full_data %>% filter(cdrz_designation_date == "September 6, 2023") #filtering out new tribal and territory designations
   
 # list of cdrz tracts to filter on
 cdrz_tracts <- cdrz_data %>% pull(geoid)
