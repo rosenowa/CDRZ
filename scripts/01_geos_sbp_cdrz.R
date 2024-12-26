@@ -473,43 +473,73 @@ cdrz_all_data <- acs_cdrz_geography %>%
 ################################################################################
 ################################################################################
 
+```{r}
+#| include: false
+#| echo: false 
+###################### Joining data with CDRZ_ACS ###############################
+
+cdrz_all_data <- acs_cdrz_geography %>%
+  # Joining with rural-urban classification 
+  left_join(rural_urban, by = "county_state_code") %>%
+  # Joining with county capacity 
+  left_join(county_capacity %>% select(rural_capacity_index, county_state_code, 
+                                       percent_of_counties_nationwide_with_higher_capacity), 
+            by = "county_state_code") %>% 
+  # Joining with NRI Index
+  left_join(nri_index_tracts %>% select(nri_id, risk_score, risk_ratng,
+                                        eal_score, eal_ratng, sovi_score, sovi_ratng, resl_score, resl_ratng),
+            by = "nri_id")  
+# # Joining with first street data 
+#   left_join(fsf_data %>% select(geoid, 
+#                                 starts_with("per_minimal_"),
+#                                 starts_with("per_minor_"),
+#                                 starts_with("per_moderate_"),
+#                                 starts_with("per_major_"),
+#                                 starts_with("per_severe_"),
+#                                 starts_with("per_extreme_")), by = "geoid") 
+
+################################################################################
+################################################################################
+###########################    SBP + GEOS FOOTPRINT    #########################
+################################################################################
+
 partner_cdrz_all_data <- cdrz_all_data %>% 
   mutate(
     # SBP geographies
     sbp = case_when(
       (state_abbreviation == "TX")| ## county_name %in% c("Orange County", "Jefferson County", "Hardin County", "Jasper County")) |
-      (state_abbreviation == "AL" & county_name == "Mobile County") |
-      (state_abbreviation == "SC" & county_name %in% c("Berkeley County", "Dorchester County", "Charleston County")) |
-      (state_abbreviation == "MS" & county_name %in% c("Covington County", "Forrest County", "George County", "Greene County", "Hancock County", 
-                                                       "Harrison County", "Jackson County", "Jefferson Davis County", "Jones County", 
-                                                       "Lamar County", "Marion County", "Pearl River County", "Perry County", "Stone County", 
-                                                       "Wayne County"))|
-      (state_abbreviation == "FL" & county_name == "Charlotte County") ~ "1",# All other cases set to 0
+        (state_abbreviation == "AL" & county_name == "Mobile County") |
+        (state_abbreviation == "SC" & county_name %in% c("Berkeley County", "Dorchester County", "Charleston County")) |
+        (state_abbreviation == "MS" & county_name %in% c("Covington County", "Forrest County", "George County", "Greene County", "Hancock County", 
+                                                         "Harrison County", "Jackson County", "Jefferson Davis County", "Jones County", 
+                                                         "Lamar County", "Marion County", "Pearl River County", "Perry County", "Stone County", 
+                                                         "Wayne County"))|
+        (state_abbreviation == "FL" & county_name == "Charlotte County") ~ "1",# All other cases set to 0
       TRUE ~ "0"), 
     
     # GEOS geographies
     geos = case_when(
       (state_abbreviation == "NC" & county_name %in% c("Beaufort County", "Carteret County", "Craven County", "Dare County", "Hyde County", 
-                                                     "New Hanover County", "Onslow County", "Sampson County", "Tyrrell County", "Washington County")) |
-      (state_abbreviation == "SC" & county_name %in% c("Beaufort County", "Berkeley County", "Charleston County", "Dorchester County", "Horry County")) |
-      (state_abbreviation == "GA" & county_name %in% c("Bulloch County", "Chatham County","Liberty County", "McIntosh County", "Seminole County", "Wayne County")) |
-      (state_abbreviation == "FL" & county_name %in% c("Bay County", "Brevard County", "Broward County", "Charlotte County", "Collier County", "DeSoto County",
-                                                       "Hendry County", "Hillsborough County", "Indian River County", "Martin County", "Miami-Dade County", 
-                                                       "Palm Beach County", "Pinellas County", "St. Lucie County", "Washington County")) ~ "1",
+                                                       "New Hanover County", "Onslow County", "Sampson County", "Tyrrell County", "Washington County")) |
+        (state_abbreviation == "SC" & county_name %in% c("Beaufort County", "Berkeley County", "Charleston County", "Dorchester County", "Horry County")) |
+        (state_abbreviation == "GA" & county_name %in% c("Bulloch County", "Chatham County","Liberty County", "McIntosh County", "Seminole County", "Wayne County")) |
+        (state_abbreviation == "FL" & county_name %in% c("Bay County", "Brevard County", "Broward County", "Charlotte County", "Collier County", "DeSoto County",
+                                                         "Hendry County", "Hillsborough County", "Indian River County", "Martin County", "Miami-Dade County", 
+                                                         "Palm Beach County", "Pinellas County", "St. Lucie County", "Washington County")) ~ "1",
       TRUE ~ "0"), 
     
     # overlapping geographies (both SBP and GEOs)
     partner_overlap = case_when(
-       (state_abbreviation == "SC" & county_name %in% c("Berkeley County", "Charleston County")) | 
-       (state_abbreviation == "FL" & county_name == "Charlotte County") ~ "1",
-    TRUE ~ "0"  ),
+      (state_abbreviation == "SC" & county_name %in% c("Berkeley County", "Charleston County")) | 
+        (state_abbreviation == "FL" & county_name == "Charlotte County") ~ "1",
+      TRUE ~ "0"  ),
     
     # column to combine sbp, geos, and overlapping cdrzs (both SBP and GEOs)
     sbp_geos_footprint = case_when(
-    sbp == "1" & geos == "1" ~ "Partner overlap",  # If both SBP and GEOs are working with the CDRZ
-    sbp == "1" ~ "SBP",                            # If only SBP is working with the CDRZ
-    geos == "1" ~ "GEOs",                          # If only GEOs is working with the CDRZ
-    TRUE ~ NA_character_  ), 
+      sbp == "1" & geos == "1" ~ "Partner overlap",  # If both SBP and GEOs are working with the CDRZ
+      sbp == "1" ~ "SBP",                            # If only SBP is working with the CDRZ
+      geos == "1" ~ "GEOs",                          # If only GEOs is working with the CDRZ
+      TRUE ~ NA_character_  ), 
     
     # Host Entity Defined by SBP
     host_entity_sbp = case_when(
@@ -528,31 +558,30 @@ partner_cdrz_all_data <- cdrz_all_data %>%
       sbp == "1" ~ paste0(county_name)), 
     
     # Number of SBP fellows
-     number_of_fellows_sbp = case_when(
-     host_entity_sbp == "City of Mobile" ~ 1, 
-     host_entity_sbp == "Charlotte County, FL" ~ 1, 
-     host_entity_sbp == "Southern Mississippi Planning District  (co-placed with Water Insitute of the Gulf)" ~ 1, 
-     host_entity_sbp == "Southeast Texas Regional Planning Commission" ~ 1, 
-     host_entity_sbp == "Texas State's General Land Office (GLO)" ~ 1, 
-     host_entity_sbp == "Berkeley-Charleston-Dorchester Council of Government (BCDCOG)" ~ 1), 
+    number_of_fellows_sbp = case_when(
+      host_entity_sbp == "City of Mobile" ~ 1, 
+      host_entity_sbp == "Charlotte County, FL" ~ 1, 
+      host_entity_sbp == "Southern Mississippi Planning District  (co-placed with Water Insitute of the Gulf)" ~ 1, 
+      host_entity_sbp == "Southeast Texas Regional Planning Commission" ~ 1, 
+      host_entity_sbp == "Texas State's General Land Office (GLO)" ~ 1, 
+      host_entity_sbp == "Berkeley-Charleston-Dorchester Council of Government (BCDCOG)" ~ 1), 
     
     #name of SBP Fellow (until we have the list of the fellow names)
     fellow_name_sbp = "NA", 
     
     # SBP Fellow Group Managers
-      fellows_group_manager_sbp = case_when(
+    fellows_group_manager_sbp = case_when(
       sbp == "1" & state_abbreviation %in% c("TX", "SC") ~ "Michelle Bohrson (MBohrson@sbpusa.org)", 
       sbp == "1" & state_abbreviation %in% c("AL", "MS", "FL") ~ "Don Gardner (DGardner@sbpusa.org)"), 
-   
-     # SBP Analyst
+    
+    # SBP Analyst
     fellows_analyst_sbp = "Makisha Mosley (MMosley@sbpusa.org)", 
-
+    
     # SBP SME
     fellows_SME_sbp = "Sherry Risk (SRisk@sbpusa.org)", 
     
-   
     #Geos Nicknames for CDRZs
-    nicknames_geos = case_when(
+    nickname_geos = case_when(
       geos == "1" & state_abbreviation == "SC" & county_name == "Beaufort County" ~ "Bluffton",
       geos == "1" & state_abbreviation == "SC" & county_name == "Berkeley County" ~ "Goose Creek",
       geos == "1" & state_abbreviation == "SC" & county_name == "Charleston County" ~ "Nth Charlston",
@@ -562,7 +591,10 @@ partner_cdrz_all_data <- cdrz_all_data %>%
       geos == "1" & state_abbreviation == "GA" & county_name == "Chatham County" & geoid == 13051004001 ~ "Census Tract 40.01",
       geos == "1" & state_abbreviation == "GA" & county_name == "Chatham County" & geoid == 13051010601 ~ "Garden City",
       geos == "1" & state_abbreviation == "GA" & county_name == "Chatham County" & geoid == 13051011700 ~ "NW Savannah",
-      geos == "1" & state_abbreviation == "GA" & county_name == "Chatham County" & geoid == 13051011900 ~ "SE Historic District",
+      geos == "1" & state_abbreviation == "GA" & county_name == "Chatham County" & geoid == 13051011900 ~ "SE Historic District", 
+      geos == "1" & state_abbreviation == "FL" & county_name == "Brevard County" ~ "City of Melbourne", 
+      geos == "1" & state_abbreviation == "FL" & county_name == "Indian River County" ~ "Indian River/ Fellsmere", 
+      geos == "1" & state_abbreviation == "FL" & county_name == "Martin County" ~ "City of Stuart", 
       geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011010307 ~ "Deerfield Beach", 
       geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011030500,12011030601) ~ "Pompano Beach", 
       geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011042502 ~ "Ft Lauderdale",
@@ -573,31 +605,33 @@ partner_cdrz_all_data <- cdrz_all_data %>%
       geos == "1" & state_abbreviation == "FL" & county_name == "Miami-Dade County" & geoid == 12086011500 ~ "Homestead & Everglades",
       geos == "1" & state_abbreviation == "FL" & county_name == "Palm Beach County" & geoid == 12099005000 ~ "Atlantis & Lantana",
       geos == "1" & state_abbreviation == "FL" & county_name == "Palm Beach County" & geoid == 12099007100 ~ "Boca Raton",
-      geos == "1" & state_abbreviation == "FL" & county_name == "Pinellas County" ~ "Clearwater City"), 
+      geos == "1" & state_abbreviation == "FL" & county_name == "Pinellas County" ~ "Clearwater City",
+      TRUE ~ NA_character_), 
     
     #Groups defined by GEOs
-     geos_community_cluster = case_when(
-     geos == "1" & state_abbreviation == "NC" & county_name == "Beaufort County" ~ "Beaufort Group",
-     geos == "1" & state_abbreviation == "NC" & county_name == "Craven County" ~ "Craven Group",
-     geos == "1" & state_abbreviation == "NC" & county_name == "Dare County" ~ "Dare Group",
-     geos == "1" & state_abbreviation == "NC" & county_name == "Hyde County" ~ "Hyde Group",
-     geos == "1" & state_abbreviation == "SC" & county_name == "Charleston County" ~ "Charleston Group",
-     geos == "1" & state_abbreviation == "SC" & county_name == "Dorchester County" ~ "Dorchester Group",
-     geos == "1" & state_abbreviation == "GA" & county_name == "Chatham County" ~ "Chatham Group",
-     geos == "1" & state_abbreviation == "GA" & county_name == "Liberty County" ~ "Liberty Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "St. Lucie County" ~ "St. Lucie Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011030500, 12011030601) ~ "Broward Group (1)",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011050207, 12011050208) ~ "Broward Group (2)",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011010307 ~ "Broward Group (3)",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011042502 ~ "Broward Group (4)",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011110600 ~ "Broward Group (5)",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Miami-Dade County" & geoid %in% c(12086009010, 12086009040, 12086009102) ~ "Miami-Dade Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Palm Beach County" ~ "Palm Beach Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Bay County" ~ "Bay Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Washington County" ~ "Washington Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Hendry County" ~ "Hendry Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Collier County" ~ "Collier Group", 
-     geos == "1" ~ paste0(county_name, "Group")),
+    geos_community_cluster = case_when(
+      geos == "1" & state_abbreviation == "NC" & county_name == "Beaufort County" ~ "Beaufort Group",
+      geos == "1" & state_abbreviation == "NC" & county_name == "Craven County" ~ "Craven Group",
+      geos == "1" & state_abbreviation == "NC" & county_name == "Dare County" ~ "Dare Group",
+      geos == "1" & state_abbreviation == "NC" & county_name == "Hyde County" ~ "Hyde Group",
+      geos == "1" & state_abbreviation == "SC" & county_name == "Charleston County" ~ "Charleston Group",
+      geos == "1" & state_abbreviation == "SC" & county_name == "Dorchester County" ~ "Dorchester Group",
+      geos == "1" & state_abbreviation == "GA" & county_name == "Chatham County" ~ "Chatham Group",
+      geos == "1" & state_abbreviation == "GA" & county_name == "Liberty County" ~ "Liberty Group",
+      geos == "1" & state_abbreviation == "FL" & county_name == "St. Lucie County" ~ "St. Lucie Group",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011030500, 12011030601) ~ "Pompano Beach",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011050207, 12011050208) ~ "Oakland & Nth Andrews Parks",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011010307 ~ "Deerfield Beach",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011042502 ~ "Ft Lauderdale",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011110600 ~ "Dania Beach",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Miami-Dade County" & geoid %in% c(12086009010, 12086009040, 12086009102) ~ "Doral Group",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Palm Beach County" ~ "Palm Beach Group",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Bay County" ~ "Bay Group",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Washington County" ~ "Washington Group",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Hendry County" ~ "Hendry Group",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Collier County" ~ "Collier Group", 
+      TRUE ~ coalesce(nickname_geos, paste((county_name), "Group"))),
+    
     
     # Navigator name Defined by GEOs
     navigator_name_geos = case_when(
@@ -620,105 +654,15 @@ partner_cdrz_all_data <- cdrz_all_data %>%
     
     #sbp community unique ID - Helps to determine how many communities a fellows will oversee 
     unique_id_sbp = dense_rank(sbp_community_cluster), 
-   
-   #host entities defined by Geos 
-   host_entity_geos = case_when(
-     geos == "1" & state_abbreviation == "GA" ~ "Georgia Conservancy", 
-     geos == "1" & state_abbreviation == "NC" ~ "North Carolina Office of Recovery and Resiliency",
-     geos == "1" & state_abbreviation == "SC" ~ "Shi Institute for Sustainable Communities at Furman University",
-     geos == "1" & state_abbreviation == "FL" ~ "Florida Climate Institute"))
+    
+    #host entities defined by Geos 
+    host_entity_geos = case_when(
+      geos == "1" & state_abbreviation == "GA" ~ "Georgia Conservancy", 
+      geos == "1" & state_abbreviation == "NC" ~ "North Carolina Office of Recovery and Resiliency",
+      geos == "1" & state_abbreviation == "SC" ~ "Shi Institute for Sustainable Communities at Furman University",
+      geos == "1" & state_abbreviation == "FL" ~ "Florida Climate Institute"))
 
 
-################################################################################
-################################################################################
-###########################    SBP FOOTPRINT    ################################
-################################################################################
-################################################################################ 
-
-sbp_cdrz<- cdrz_all_data %>%
-  filter((state_abbreviation == "TX")| ## county_name %in% c("Orange County", "Jefferson County", "Hardin County", "Jasper County")) |
-           (state_abbreviation == "AL" & county_name == "Mobile County") |
-           (state_abbreviation == "SC" & county_name %in% c("Berkeley County", "Dorchester County", "Charleston County")) |
-           (state_abbreviation == "MS" & county_name %in% c("Covington County", "Forrest County", "George County", "Greene County", "Hancock County", 
-                                                            "Harrison County", "Jackson County", "Jefferson Davis County", "Jones County", 
-                                                            "Lamar County", "Marion County", "Pearl River County", "Perry County", "Stone County", 
-                                                            "Wayne County"))|
-           (state_abbreviation == "FL" & county_name == "Charlotte County")) %>% 
-  mutate(partner = "sbp", 
-         institutions = case_when(
-           state_abbreviation == "MS" ~ "Southern Mississippi Planning District",
-           state_abbreviation == "TX" & county_name %in% c("Orange County", "Jefferson County", "Hardin County", "Jasper County") ~ "Southeast Texas Regional Planning Commission", 
-           state_abbreviation == "TX" & !county_name %in% c("Orange County", "Jefferson County", "Hardin County", "Jasper County") ~ "Texas State's General Land Office (GLO)",
-           state_abbreviation == "SC" ~ "Berkeley-Charleston-Dorchester Council of Government (BCDCOG)")
-  )
-
-################################################################################
-################################################################################
-###########################    GEOS FOOTPRINT    ###############################
-################################################################################
-################################################################################
-
-geos_cdrz<- cdrz_all_data %>%
-  filter((state_abbreviation == "NC" & county_name %in% c("Beaufort County", "Carteret County", "Craven County", "Dare County", "Hyde County", 
-                                                          "New Hanover County", "Onslow County", "Sampson County",
-                                                          "Tyrrell County", "Washington County"))  | ## washington counties?? 
-           (state_abbreviation == "SC" & county_name %in% c("Beaufort County", "Berkeley County", "Charleston County", "Dorchester County", "Horry County"))|
-           (state_abbreviation == "GA" & county_name %in% c("Bulloch County", "Chatham County","Liberty County", "McIntosh County", "Seminole County", "Wayne County")) |
-           (state_abbreviation == "FL" & county_name %in% c( "Bay County", "Brevard County", "Broward County", "Charlotte County", "Collier County",  "DeSoto County",
-                                                             "Hendry County", "Hillsborough County", "Indian River County", "Martin County", "Miami-Dade County", "Palm Beach County",
-                                                             "Pinellas County", "St. Lucie County", "Washington County"))) %>% 
-  mutate(partner = "geos", 
-         navigator_name = case_when(
-           state_abbreviation == "NC" ~ "Holly White & Helene Whetherington",
-           state_abbreviation == "SC" ~  "Adelaide",
-           state_abbreviation == "GA" ~ "Courtney & Monet",
-           state_abbreviation == "FL" & county_name %in% c( "Brevard County", "Indian River County", "Martin County", "St. Lucie County")~ "Holly Abeels", 
-           state_abbreviation == "FL" & county_name == "Bay County" ~ "Jackson",
-           state_abbreviation == "FL" & county_name == "Washington County" ~ "Stevenson",
-           state_abbreviation == "FL" & county_name %in% c("Hillsborough County", "Pinellas County") ~ "Madhosingh-Hector",
-           state_abbreviation == "FL" & county_name %in% c("Broward County", "Miami-Dade County", "Palm Beach County") ~ "Betancourt & Hart",
-           state_abbreviation == "FL" & county_name %in% c("DeSoto County", "Hendry County") ~ "Ubeda",
-           state_abbreviation == "FL" & county_name %in% c("Charlotte County", "Collier County") ~ "Wilson"), 
-         grouped = case_when(
-           state_abbreviation == "NC" & county_name == "Beaufort County" ~ "Beaufort Group",
-           state_abbreviation == "NC" & county_name == "Craven County" ~ "Craven Group",
-           state_abbreviation == "NC" & county_name == "Dare County" ~ "Dare Group",
-           state_abbreviation == "NC" & county_name == "Hyde County" ~ "Hyde Group",
-           state_abbreviation == "SC" & county_name == "Charleston County" ~ "Charleston Group",
-           state_abbreviation == "SC" & county_name == "Dorchester County" ~ "Dorchester Group",
-           state_abbreviation == "GA" & county_name == "Chatham County" ~ "Chatham Group",
-           state_abbreviation == "GA" & county_name == "Liberty County" ~ "Liberty Group",
-           state_abbreviation == "FL" & county_name == "St. Lucie County" ~ "St. Lucie Group",
-           state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011030500, 12011030601) ~ "Broward Group (1)",
-           state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011050207, 12011050208) ~ "Broward Group (2)",
-           state_abbreviation == "FL" & county_name == "Miami-Dade County" & geoid %in% c(12086009010, 12086009040, 12086009102) ~ "Miami-Dade Group",
-           state_abbreviation == "FL" & county_name == "Palm Beach County" ~ "Palm Beach Group",
-           state_abbreviation == "FL" & county_name == "Bay County" ~ "Bay Group",
-           state_abbreviation == "FL" & county_name == "Washington County" ~ "Washington Group",
-           state_abbreviation == "FL" & county_name == "Hendry County" ~ "Hendry Group",
-           state_abbreviation == "FL" & county_name == "Collier County" ~ "Collier Group"))
-
-
-################################################################################
-################################################################################
-#######################    COMBINED FOOTPRINT    ###############################
-################################################################################
-################################################################################
-
-overlapping_cdrzs <- bind_rows(sbp_cdrz, geos_cdrz) %>%
-  group_by(geoid) %>% 
-  count() %>% 
-  rename(shared = n) %>% 
-  mutate(overlapping = case_when(
-    shared == 1 ~ "No overlap", 
-    shared == 2 ~ "Partner overlap" )) 
-
-#sbp and geos cdrzs with partner overlap 
-walmart_cdrzs <- bind_rows(sbp_cdrz, geos_cdrz) %>% 
-  left_join(overlapping_cdrzs %>% select(overlapping), by = "geoid")
-
-#THERE ARE 9 CDRZS THAT FALL UNDER BOTH SBP AND GEOS 
-overlapping <- walmart_cdrzs %>% filter(overlapping== "Partner overlap" )
 ##########################################################################################
 ##########################################################################################
 ####################### ADDING PLACES FOR SBP AND GEOS ###################################
@@ -763,7 +707,7 @@ final_table <- cdrzs_tracts_places_clean %>%
          number_of_fellows_sbp, fellows_group_manager_sbp, 
          fellows_analyst_sbp, fellows_sme_sbp, 
          #GEOs columns
-         unique_id_geos, geos_community_cluster, nicknames_geos, host_entity_geos, navigator_name_geos, supporting_staff_geos, 
+         unique_id_geos, geos_community_cluster, nickname_geos, host_entity_geos, navigator_name_geos, supporting_staff_geos, 
          cdrz_designation_date, urban_designation, 
          description, rural_capacity_index, 
          percent_of_counties_nationwide_with_higher_capacity, everything()) %>%
