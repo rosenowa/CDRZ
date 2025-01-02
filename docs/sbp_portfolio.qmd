@@ -17,7 +17,6 @@ execute:
 editor: 
   markdown: 
     wrap: 72
-
 ---
 
 Use the right panel to select the community you work in.
@@ -630,6 +629,7 @@ final_table <- cdrzs_tracts_places_clean %>%
 ```{r}
 #| include: true
 #| echo: false
+
 sbp_tract_portfolio <- function(x) {
   cdrzs_tracts_places_clean %>% 
     st_drop_geometry() %>%
@@ -670,16 +670,16 @@ sbp_tract_portfolio <- function(x) {
     knitr::kable(
       format = "html",
       caption = paste("Demographic Indicators -", x))}
+
 ```
 
 # 1. Berkeley County
 
 ```{r}
-#| include: false
+#| include: true
 #| echo: false
 
 sbp_tract_portfolio("Berkeley County")
-
 ```
 
 # 2. Brazoria County
