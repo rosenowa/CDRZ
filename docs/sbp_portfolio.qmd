@@ -1,8 +1,5 @@
 ---
 title: "Community Profiles for SBP Fellows"
-project:
-  type: website
-  output-dir: docs
 format:
   html:
     toc: true
