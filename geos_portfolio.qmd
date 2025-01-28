@@ -405,9 +405,13 @@ cdrz_all_data <- acs_cdrz_geography %>%
                   by = "nri_id")  %>% 
   #joining ACS county population 
   left_join(acs_demographic_county_raw %>% select(total_pop_county, county_state_code), 
-            by = "county_state_code") 
-            
+            by = "county_state_code")
+```
 
+
+```{r}
+#| include: false
+#| echo: false 
 ################################################################################
 ################################################################################
 ###########################    SBP + GEOS FOOTPRINT    #########################
@@ -418,38 +422,38 @@ partner_cdrz_all_data <- cdrz_all_data %>%
     # SBP geographies
     sbp = case_when(
       (state_abbreviation == "TX")| ## county_name %in% c("Orange County", "Jefferson County", "Hardin County", "Jasper County")) |
-      (state_abbreviation == "AL" & county_name == "Mobile County") |
-      (state_abbreviation == "SC" & county_name %in% c("Berkeley County", "Dorchester County", "Charleston County")) |
-      (state_abbreviation == "MS" & county_name %in% c("Covington County", "Forrest County", "George County", "Greene County", "Hancock County", 
-                                                       "Harrison County", "Jackson County", "Jefferson Davis County", "Jones County", 
-                                                       "Lamar County", "Marion County", "Pearl River County", "Perry County", "Stone County", 
-                                                       "Wayne County"))|
-      (state_abbreviation == "FL" & county_name == "Charlotte County") ~ "1",# All other cases set to 0
+        (state_abbreviation == "AL" & county_name == "Mobile County") |
+        (state_abbreviation == "SC" & county_name %in% c("Berkeley County", "Dorchester County", "Charleston County")) |
+        (state_abbreviation == "MS" & county_name %in% c("Covington County", "Forrest County", "George County", "Greene County", "Hancock County", 
+                                                         "Harrison County", "Jackson County", "Jefferson Davis County", "Jones County", 
+                                                         "Lamar County", "Marion County", "Pearl River County", "Perry County", "Stone County", 
+                                                         "Wayne County"))|
+        (state_abbreviation == "FL" & county_name == "Charlotte County") ~ "1",# All other cases set to 0
       TRUE ~ "0"), 
     
     # GEOS geographies
     geos = case_when(
       (state_abbreviation == "NC" & county_name %in% c("Beaufort County", "Carteret County", "Craven County", "Dare County", "Hyde County", 
-                                                     "New Hanover County", "Onslow County", "Sampson County", "Tyrrell County", "Washington County")) |
-      (state_abbreviation == "SC" & county_name %in% c("Beaufort County", "Berkeley County", "Charleston County", "Dorchester County", "Horry County")) |
-      (state_abbreviation == "GA" & county_name %in% c("Bulloch County", "Chatham County","Liberty County", "McIntosh County", "Seminole County", "Wayne County")) |
-      (state_abbreviation == "FL" & county_name %in% c("Bay County", "Brevard County", "Broward County", "Charlotte County", "Collier County", "DeSoto County",
-                                                       "Hendry County", "Hillsborough County", "Indian River County", "Martin County", "Miami-Dade County", 
-                                                       "Palm Beach County", "Pinellas County", "St. Lucie County", "Washington County")) ~ "1",
+                                                       "New Hanover County", "Onslow County", "Sampson County", "Tyrrell County", "Washington County")) |
+        (state_abbreviation == "SC" & county_name %in% c("Beaufort County", "Berkeley County", "Charleston County", "Dorchester County", "Horry County")) |
+        (state_abbreviation == "GA" & county_name %in% c("Bulloch County", "Chatham County","Liberty County", "McIntosh County", "Seminole County", "Wayne County")) |
+        (state_abbreviation == "FL" & county_name %in% c("Bay County", "Brevard County", "Broward County", "Charlotte County", "Collier County", "DeSoto County",
+                                                         "Hendry County", "Hillsborough County", "Indian River County", "Martin County", "Miami-Dade County", 
+                                                         "Palm Beach County", "Pinellas County", "St. Lucie County", "Washington County")) ~ "1",
       TRUE ~ "0"), 
     
     # overlapping geographies (both SBP and GEOs)
     partner_overlap = case_when(
-       (state_abbreviation == "SC" & county_name %in% c("Berkeley County", "Charleston County")) | 
-       (state_abbreviation == "FL" & county_name == "Charlotte County") ~ "1",
-    TRUE ~ "0"  ),
+      (state_abbreviation == "SC" & county_name %in% c("Berkeley County", "Charleston County")) | 
+        (state_abbreviation == "FL" & county_name == "Charlotte County") ~ "1",
+      TRUE ~ "0"  ),
     
     # column to combine sbp, geos, and overlapping cdrzs (both SBP and GEOs)
     sbp_geos_footprint = case_when(
-    sbp == "1" & geos == "1" ~ "Partner overlap",  # If both SBP and GEOs are working with the CDRZ
-    sbp == "1" ~ "SBP",                            # If only SBP is working with the CDRZ
-    geos == "1" ~ "GEOs",                          # If only GEOs is working with the CDRZ
-    TRUE ~ NA_character_  ), 
+      sbp == "1" & geos == "1" ~ "Partner overlap",  # If both SBP and GEOs are working with the CDRZ
+      sbp == "1" ~ "SBP",                            # If only SBP is working with the CDRZ
+      geos == "1" ~ "GEOs",                          # If only GEOs is working with the CDRZ
+      TRUE ~ NA_character_  ), 
     
     # Host Entity Defined by SBP
     host_entity_sbp = case_when(
@@ -468,28 +472,28 @@ partner_cdrz_all_data <- cdrz_all_data %>%
       sbp == "1" ~ paste0(county_name)), 
     
     # Number of SBP fellows
-     number_of_fellows_sbp = case_when(
-     host_entity_sbp == "City of Mobile" ~ 1, 
-     host_entity_sbp == "Charlotte County, FL" ~ 1, 
-     host_entity_sbp == "Southern Mississippi Planning District  (co-placed with Water Insitute of the Gulf)" ~ 1, 
-     host_entity_sbp == "Southeast Texas Regional Planning Commission" ~ 1, 
-     host_entity_sbp == "Texas State's General Land Office (GLO)" ~ 1, 
-     host_entity_sbp == "Berkeley-Charleston-Dorchester Council of Government (BCDCOG)" ~ 1), 
+    number_of_fellows_sbp = case_when(
+      host_entity_sbp == "City of Mobile" ~ 1, 
+      host_entity_sbp == "Charlotte County, FL" ~ 1, 
+      host_entity_sbp == "Southern Mississippi Planning District  (co-placed with Water Insitute of the Gulf)" ~ 1, 
+      host_entity_sbp == "Southeast Texas Regional Planning Commission" ~ 1, 
+      host_entity_sbp == "Texas State's General Land Office (GLO)" ~ 1, 
+      host_entity_sbp == "Berkeley-Charleston-Dorchester Council of Government (BCDCOG)" ~ 1), 
     
     #name of SBP Fellow (until we have the list of the fellow names)
     fellow_name_sbp = "NA", 
     
     # SBP Fellow Group Managers
-      fellows_group_manager_sbp = case_when(
+    fellows_group_manager_sbp = case_when(
       sbp == "1" & state_abbreviation %in% c("TX", "SC") ~ "Michelle Bohrson (MBohrson@sbpusa.org)", 
       sbp == "1" & state_abbreviation %in% c("AL", "MS", "FL") ~ "Don Gardner (DGardner@sbpusa.org)"), 
-   
-     # SBP Analyst
+    
+    # SBP Analyst
     fellows_analyst_sbp = "Makisha Mosley (MMosley@sbpusa.org)", 
-
+    
     # SBP SME
     fellows_SME_sbp = "Sherry Risk (SRisk@sbpusa.org)", 
-      
+    
     #Geos Nicknames for CDRZs
     nickname_geos = case_when(
       geos == "1" & state_abbreviation == "SC" & county_name == "Beaufort County" ~ "Bluffton",
@@ -520,28 +524,38 @@ partner_cdrz_all_data <- cdrz_all_data %>%
     
     #Groups defined by GEOs
     geos_community_cluster = case_when(
-     geos == "1" & state_abbreviation == "NC" & county_name == "Beaufort County" ~ "Beaufort Group",
-     geos == "1" & state_abbreviation == "NC" & county_name == "Craven County" ~ "Craven Group",
-     geos == "1" & state_abbreviation == "NC" & county_name == "Dare County" ~ "Dare Group",
-     geos == "1" & state_abbreviation == "NC" & county_name == "Hyde County" ~ "Hyde Group",
-     geos == "1" & state_abbreviation == "SC" & county_name == "Charleston County" ~ "Charleston Group",
-     geos == "1" & state_abbreviation == "SC" & county_name == "Dorchester County" ~ "Dorchester Group",
-     geos == "1" & state_abbreviation == "GA" & county_name == "Chatham County" ~ "Chatham Group",
-     geos == "1" & state_abbreviation == "GA" & county_name == "Liberty County" ~ "Liberty Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "St. Lucie County" ~ "St. Lucie Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011030500, 12011030601) ~ "Pompano Beach",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011050207, 12011050208) ~ "Oakland & Nth Andrews Parks",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011010307 ~ "Deerfield Beach",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011042502 ~ "Ft Lauderdale",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011110600 ~ "Dania Beach",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Miami-Dade County" & geoid %in% c(12086009010, 12086009040, 12086009102) ~ "Doral Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Palm Beach County" ~ "Palm Beach Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Bay County" ~ "Bay Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Washington County" ~ "Washington Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Hendry County" ~ "Hendry Group",
-     geos == "1" & state_abbreviation == "FL" & county_name == "Collier County" ~ "Collier Group", 
-     TRUE ~ coalesce(nickname_geos, paste((county_name), "Group"))),
-
+      ## SOUTH CAROLINA  (5 grpups)
+      geos == "1" & state_abbreviation == "SC" & county_name == "Beaufort County" ~ "Beaufort County (Bluffton), SC",
+      geos == "1" & state_abbreviation == "SC" & county_name == "Berkeley County" ~ "Berkeley County (Goose Creek), SC",
+      geos == "1" & state_abbreviation == "SC" & county_name == "Charleston County" ~ "Charleston County (Nth Charleston), SC",
+      geos == "1" & state_abbreviation == "SC" & county_name == "Dorchester County" ~ "Dorchester County (Summerville), SC",
+      geos == "1" & state_abbreviation == "SC" & county_name == "Horry County" ~ "Horry County (Myrtle Beach), SC",
+      
+      ## GEORGIA (6 groups- but only two have nicknames)
+      geos == "1" & state_abbreviation == "GA" & county_name == "Chatham County" & geoid %in% c(13051004001,13051004002,
+                                                                                                13051010504, 13051980000,
+                                                                                                13051010601, 13051011700, 13051011900)  ~ "Chatham County (including Census Tract 40.01, Garden City, NW Savannah, SE Historic District), GA",
+      geos == "1" & state_abbreviation == "GA" & county_name == "Bulloch County" ~ "Bulloch County (Statesboro), GA",
+      # geos == "1" & state_abbreviation == "GA" & county_name == "Liberty County" ~ "Liberty Group",
+      
+      #FLORIDA (16 groups)
+      geos == "1" & state_abbreviation == "FL" & county_name == "Brevard County" ~ "Brevard County (City of Melbourne), FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Indian River County" ~ "Indian River County (Indian River/ Fellsmere), FL", 
+      geos == "1" & state_abbreviation == "FL" & county_name == "Martin County" ~ "Martin County (City of Stuart), FL", 
+      geos == "1" & state_abbreviation == "FL" & county_name == "St. Lucie County" ~ "St. Lucie County (Fort Pierce), FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011010307 ~ "Broward County (Deerfield Beach), FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011030500, 12011030601) ~ "Broward County (Pompano Beach), FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011042502 ~ "Broward County (Ft Lauderdale), FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011050207, 12011050208) ~ "Broward County (Oakland & Nth Andrews Parks), FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011110600 ~ "Broward County (Dania Beach), FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Miami-Dade County" & geoid %in% c(12086009010, 12086009040, 12086009102) ~ "Miami-Dade County (Doral & Hialeach), FL", 
+      geos == "1" & state_abbreviation == "FL" & county_name == "Miami-Dade County" & geoid == 12086011500 ~ "Miami-Dade County (Homestead & Everglades), FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Palm Beach County" ~ "Palm Beach County (Atlantis, Lantana, & Boca Raton), FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Pinellas County" ~ "Pinellas County (Clearwater City), FL",
+      geos == "1" ~ coalesce(paste(county_name, ",", state_abbreviation)),
+      TRUE ~ NA_character_),
+    
+    
     # Navigator name Defined by GEOs
     navigator_name_geos = case_when(
       geos == "1" & state_abbreviation == "NC" ~ "Holly White & Helene Whetherington",
@@ -563,13 +577,13 @@ partner_cdrz_all_data <- cdrz_all_data %>%
     
     #sbp community unique ID - Helps to determine how many communities a fellows will oversee 
     unique_id_sbp = dense_rank(sbp_community_cluster), 
-   
-   #host entities defined by Geos 
-   host_entity_geos = case_when(
-     geos == "1" & state_abbreviation == "GA" ~ "Georgia Conservancy", 
-     geos == "1" & state_abbreviation == "NC" ~ "North Carolina Office of Recovery and Resiliency",
-     geos == "1" & state_abbreviation == "SC" ~ "Shi Institute for Sustainable Communities at Furman University",
-     geos == "1" & state_abbreviation == "FL" ~ "Florida Climate Institute"))
+    
+    #host entities defined by Geos 
+    host_entity_geos = case_when(
+      geos == "1" & state_abbreviation == "GA" ~ "Georgia Conservancy", 
+      geos == "1" & state_abbreviation == "NC" ~ "North Carolina Office of Recovery and Resiliency",
+      geos == "1" & state_abbreviation == "SC" ~ "Shi Institute for Sustainable Communities at Furman University",
+      geos == "1" & state_abbreviation == "FL" ~ "Florida Climate Institute"))
 
 ```
 
@@ -594,7 +608,14 @@ partner_cdrz_all_data %>% filter(geos == 1) %>% group_by(nri_id) %>% select(nri_
  a <-  partner_cdrz_all_data %>% 
   st_drop_geometry() %>%
   filter(geos == 1) %>%
-  distinct(geos_community_cluster) 
+  group_by(geos_community_cluster) %>%
+   summarise(
+     count = n()
+   )
+```
+
+
+```{r}
 ```
 
 ```{r}
@@ -616,8 +637,12 @@ cdrzs_tracts_places_clean <- cdrz_tracts_places1 %>%
   select(-c(STATEFP, PLACEFP, PLACENS,AFFGEOID, GEOID, NAME, STUSPS, LSAD, ALAND, AWATER, STATE_NAME, county_code)) %>% 
   rename(place_name = NAMELSAD)%>% 
   clean_names() 
+```
 
 
+```{r}
+#| include: false
+#| echo: false 
 final_table <- cdrzs_tracts_places_clean %>% 
   st_drop_geometry() %>%
   select(-tribal_name, -objectid,-state_fips, 
@@ -642,26 +667,33 @@ final_table <- cdrzs_tracts_places_clean %>%
             .names = "{.col}")) %>% 
   select(sbp_geos_footprint, geoid, county_name, intersecting_places, everything())
 
+geos <- final_table %>% filter(sbp_geos_footprint != "SBP") %>% 
+  group_by(state, geos_community_cluster) %>% 
+  summarize(
+  number_of_CDRZs= n()
+  )
+
 ```
 
 ```{r}
 #| include: true
 #| echo: false
+ 
 geos_tract_portfolio <- function(x) {
-  cdrzs_tracts_places_clean %>% 
+  partner_cdrz_all_data %>% 
     st_drop_geometry() %>%
     filter(geos == 1) %>%
     filter(geos_community_cluster == x) %>%
-    select(c(tract_fips, place_name, county, nickname_geos, geos_community_cluster, state, total_pop, median_hh_income, 
+    select(c(tract_fips, county, nickname_geos, geos_community_cluster, state, total_pop, median_hh_income, 
              starts_with("per_"), rural_capacity_index, percent_of_counties_nationwide_with_higher_capacity,
              risk_score, risk_ratng, eal_score, eal_ratng, 
              sovi_score, sovi_ratng, resl_score, resl_ratng, urban_designation)) %>%
-    group_by(geos_community_cluster) %>%
-    summarize(
-      intersecting_places = paste(place_name, collapse = ", "), 
-      across(-place_name, ~ first(.), .names = "{.col}")
-    ) %>%
-    ungroup() %>% 
+    # group_by(geos_community_cluster) %>% #place_name
+    # # summarize(
+    # #   intersecting_places = paste(place_name, collapse = ", "), 
+    # #   across(-place_name, ~ first(.), .names = "{.col}")
+    # # ) %>%
+    # ungroup() %>% 
     rename(
       census_tract = tract_fips, 
       per_homeowner = per_h_owner,
@@ -675,7 +707,7 @@ geos_tract_portfolio <- function(x) {
       community_resilience_score = resl_score, 
       community_resilience_rating = resl_ratng
     ) %>%
-    select(census_tract, county, state, intersecting_places, everything()) %>% 
+    select(census_tract, county, state, everything()) %>%  #intersecting_places
     mutate(
       across(where(is.numeric) & starts_with("per"), ~ round(. * 100, 1)),
       across(c(total_pop, median_hh_income), ~ comma(.)), 
@@ -686,374 +718,381 @@ geos_tract_portfolio <- function(x) {
     knitr::kable(
       format = "html",
       caption = paste("Demographic Indicators -", x))}
-
 ```
 
-# 1. Bay Group
+# 1. Bay County, FL
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Bay Group")
+geos_tract_portfolio("Bay County , FL")
 ```
 
-# 2. City of Melbourne
+# 2. Washington County, FL
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("City of Melbourne")
+geos_tract_portfolio("Washington County , FL")
 ```
 
-# 3. Deerfield Beach
+# 3. DeSoto County, FL
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Deerfield Beach")
+geos_tract_portfolio("DeSoto County , FL")
 ```
 
-# 4. Pompano Beach
+
+# 4. Hendry County, FL
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Pompano Beach")
+geos_tract_portfolio("Hendry County , FL")
 ```
 
-# 5. Ft Lauderdale
+# 5. Charlotte County, FL
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Ft Lauderdale")
+geos_tract_portfolio("Charlotte County , FL")
 ```
 
-# 6. Oakland & Nth Andrews Parks
+# 6. Collier County, FL
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Oakland & Nth Andrews Parks")
+geos_tract_portfolio("Collier County , FL")
 ```
 
-# 7. Dania Beach
+# 7. Hillsborough County, FL
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Dania Beach")
+geos_tract_portfolio("Hillsborough County , FL")
 ```
 
-# 8. Charlotte County Group
+# 8. Pinellas County, FL (Clearwater City)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Charlotte County Group")
+geos_tract_portfolio("Pinellas County (Clearwater City), FL")
+
 ```
 
-# 9. Collier Group
+
+# 9. Broward County, FL (Deerfield Beach)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Collier Group")
+geos_tract_portfolio("Broward County (Deerfield Beach), FL")
 ```
 
-# 10. DeSoto County Group
+# 10. Broward County, FL (Pompano Beach)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("DeSoto County Group")
+geos_tract_portfolio("Broward County (Pompano Beach), FL")
 ```
 
-# 11. Hendry Group County Group
+# 11. Broward County, FL (Ft Lauderdale)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Hendry Group")
+geos_tract_portfolio("Broward County (Ft Lauderdale), FL")
 ```
 
-# 12. Hillsborough County Group
+# 12. Broward County, FL (Oakland & Nth Andrews Parks)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Hillsborough County Group")
+geos_tract_portfolio("Broward County (Oakland & Nth Andrews Parks), FL")
 ```
 
-# 13. Indian River/ Fellsmere
+# 13. Broward County, FL (Dania Beach)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Indian River/ Fellsmere")
+geos_tract_portfolio("Broward County (Dania Beach), FL")
 ```
 
-# 14. City of Stuart
+# 14. Miami-Dade, FL (Doral & Hialeach)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("City of Stuart")
+geos_tract_portfolio("Miami-Dade County (Doral & Hialeach), FL")
 ```
 
-# 15. Doral Group
+# 15. Miami-Dade, FL (Homestead & Everglades)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Doral Group")
+geos_tract_portfolio("Miami-Dade County (Homestead & Everglades), FL")
 ```
 
-# 16. Homestead & Everglades
+# 16. Palm Beach County (Atlantis & Lantana, Boca Raton)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Homestead & Everglades")
+geos_tract_portfolio("Palm Beach County (Atlantis, Lantana, & Boca Raton), FL")
 ```
 
-# 17. Palm Beach Group
+# 17. Brevard County, FL (City of Melbourne)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Palm Beach Group")
+geos_tract_portfolio("Brevard County (City of Melbourne), FL")
 ```
 
-# 18. Clearwater City
+
+# 18. Indian River County, FL (Indian River/ Fellsmere)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Clearwater City")
+geos_tract_portfolio("Indian River County (Indian River/ Fellsmere), FL")
 ```
 
-# 19. St. Lucie Group
+# 19. Martin County, FL (City of Stuart)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("St. Lucie Group")
+geos_tract_portfolio("Martin County (City of Stuart), FL")
 ```
 
-# 20. Washington Group
+# 20. St. Lucie County, FL (Fort Pierce)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Washington Group")
+geos_tract_portfolio("St. Lucie County (Fort Pierce), FL")
 ```
 
-# 21. Bulloch County Group
+
+# 21. Bulloch County, GA (Statesboro)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Bulloch County Group")
+geos_tract_portfolio("Bulloch County (Statesboro), GA")
 ```
 
-# 22. Chatham Group
+# 22. Chatham County, GA (Census Tract 40.01,Garden City, NW Savannah, SE Historic District)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Chatham Group")
+geos_tract_portfolio("Chatham County (including Census Tract 40.01, Garden City, NW Savannah, SE Historic District), GA")
 ```
 
-# 23. Liberty Group
+# 23. Liberty County, GA
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Liberty Group")
+geos_tract_portfolio("Liberty County , GA")
 ```
 
-# 24. McIntosh County Group
+# 24. McIntosh County, GA
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("McIntosh County Group")
+geos_tract_portfolio("McIntosh County , GA")
 ```
 
-# 25. Seminole County Group
+# 25. Seminole County, GA
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Seminole County Group")
+geos_tract_portfolio("Seminole County , GA")
 ```
 
-# 26. Wayne County Group
+# 26. Wayne Count, GA
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Wayne County Group")
+geos_tract_portfolio("Wayne County , GA")
 ```
 
-# 27. Beaufort Group
+# 27. Beaufort County, SC (Bluffton)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Beaufort Group")
+geos_tract_portfolio("Beaufort County (Bluffton), SC")
 ```
 
-# 28. Carteret County Group
+
+# 28. Berkeley County, SC (Goose Creek)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Carteret County Group")
+geos_tract_portfolio("Berkeley County (Goose Creek), SC")
 ```
 
-# 29. Craven Group
+
+# 29. Charleston County, SC (Nth Charleston)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Craven Group")
+geos_tract_portfolio("Charleston County (Nth Charleston), SC")
 ```
 
-# 30. Dare Group
+# 30. Dorchester County, SC (Summerville)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Dare Group")
+geos_tract_portfolio("Dorchester County (Summerville), SC")
 ```
 
-# 31. Hyde Group
+# 31. Horry County, SC (Myrtle Beach)
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Hyde Group")
+geos_tract_portfolio("Horry County (Myrtle Beach), SC")
 ```
 
-# 32. New Hanover County Group
+# 32. Washington County, NC
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("New Hanover County Group")
+geos_tract_portfolio("Washington County , NC")
 ```
 
-# 33. Onslow County Group
+# 33. Tyrrell County, NC
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Onslow County Group")
+geos_tract_portfolio("Tyrrell County , NC")
 ```
 
-# 34. Sampson County Group
+# 34. Sampson County, NC
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Sampson County Group")
+geos_tract_portfolio("Sampson County , NC")
 ```
 
-# 35. Tyrrell County Group
+# 35. Onslow County, NC
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Tyrrell County Group")
+geos_tract_portfolio("Onslow County , NC")
 ```
 
-# 36. Washington County Group
+# 36. New Hanover County, NC
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Washington County Group")
+geos_tract_portfolio("New Hanover County , NC")
 ```
 
-# 37. Bluffton
+# 37. Hyde County, NC
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Bluffton")
+geos_tract_portfolio("Hyde County , NC")
 ```
 
-# 38. Goose Creek
+# 38. Dare County, NC
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Goose Creek")
+geos_tract_portfolio("Dare County , NC")
 ```
 
-# 39. Charleston Group
+# 39. Craven County, NC
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Charleston Group")
+geos_tract_portfolio("Craven County , NC")
 ```
 
-# 40. Dorchester Group
+# 40. Carteret County, NC
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Dorchester Group")
+geos_tract_portfolio("Carteret County , NC")
 ```
 
-# 41. Myrtle Beach
+# 41. Beaufort County, NC
 
 ```{r}
 #| include: true
 #| echo: false
 
-geos_tract_portfolio("Myrtle Beach")
+geos_tract_portfolio("Beaufort County , NC")
 ```
+
