@@ -673,7 +673,7 @@ sbp_tract_portfolio <- function(x) {
 
 ```
 
-# 1. Berkeley County
+# 1. Berkeley County, SC
 
 ```{r}
 #| include: true
@@ -682,7 +682,7 @@ sbp_tract_portfolio <- function(x) {
 sbp_tract_portfolio("Berkeley County")
 ```
 
-# 2. Brazoria County
+# 2. Brazoria County, TX
 
 ```{r}
 #| include: true
@@ -691,7 +691,7 @@ sbp_tract_portfolio("Brazoria County")
 
 ```
 
-# 3. Charlotte County
+# 3. Charlotte County, FL
 
 ```{r}
 #| include: true
@@ -700,7 +700,7 @@ sbp_tract_portfolio("Charlotte County")
 
 ```
 
-# 4. Childress County
+# 4. Childress County, TX
 
 ```{r}
 #| include: true
@@ -710,7 +710,7 @@ sbp_tract_portfolio("Childress County")
 
 ```
 
-# 5. City of Mobile
+# 5. City of Mobile, AL 
 
 ```{r}
 #| include: true
@@ -719,7 +719,7 @@ sbp_tract_portfolio("Childress County")
 sbp_tract_portfolio("City of Mobile")
 ```
 
-# 6. Dorchester County
+# 6. Dorchester County, SC
 
 ```{r}
 #| include: true
@@ -729,7 +729,7 @@ sbp_tract_portfolio("Dorchester County")
 
 ```
 
-# 7. Floyd County
+# 7. Floyd County, TX
 
 ```{r}
 #| include: true
@@ -737,7 +737,7 @@ sbp_tract_portfolio("Dorchester County")
  sbp_tract_portfolio("Floyd County")
 ```
 
-# 8. Galveston County
+# 8. Galveston County, TX
 
 ```{r}
 #| include: true
@@ -746,7 +746,7 @@ sbp_tract_portfolio("Galveston County")
 
 ```
 
-# 9. George County
+# 9. George County, MS
 
 ```{r}
 #| include: true
@@ -755,7 +755,7 @@ sbp_tract_portfolio("George County")
 
 ```
 
-# 10. Gonzales County
+# 10. Gonzales County, TX
 
 ```{r}
 #| include: true
@@ -764,14 +764,14 @@ sbp_tract_portfolio("George County")
 
 ```
 
-# 11. Harris County
+# 11. Harris County, TX
 
 ```{r}
 sbp_tract_portfolio("Harris County")
 
 ```
 
-# 12. Harrison County
+# 12. Harrison County, MS
 
 ```{r}
 #| include: true
@@ -779,7 +779,7 @@ sbp_tract_portfolio("Harris County")
  sbp_tract_portfolio("Harrison County")
 ```
 
-# 13. Hays County
+# 13. Hays County, TX
 
 ```{r}
 #| include: true
@@ -787,7 +787,7 @@ sbp_tract_portfolio("Harris County")
  sbp_tract_portfolio("Hays County")
 ```
 
-# 14. Jefferson County
+# 14. Jefferson County, TX
 
 ```{r}
 
@@ -796,7 +796,7 @@ sbp_tract_portfolio("Harris County")
 sbp_tract_portfolio("Jefferson County")
 ```
 
-# 15. Marion County
+# 15. Marion County, MS
 
 ```{r}
 
@@ -805,7 +805,7 @@ sbp_tract_portfolio("Jefferson County")
  sbp_tract_portfolio("Marion County")
 ```
 
-# 16. Nacogdoches County
+# 16. Nacogdoches County, TX
 
 ```{r}
 #| include: true
@@ -814,7 +814,7 @@ sbp_tract_portfolio("Jefferson County")
 
 ```
 
-# 17. North Charleston City
+# 17. North Charleston City, SC
 
 ```{r}
 #| include: true
@@ -822,7 +822,7 @@ sbp_tract_portfolio("Jefferson County")
 sbp_tract_portfolio("North Charleston County")
 ```
 
-# 18. Orange County
+# 18. Orange County, TX
 
 ```{r}
 #| include: true
@@ -831,7 +831,7 @@ sbp_tract_portfolio("North Charleston County")
 
 ```
 
-# 19. Parmer County
+# 19. Parmer County, TX
 
 ```{r}
 #| include: true
@@ -839,7 +839,7 @@ sbp_tract_portfolio("North Charleston County")
 sbp_tract_portfolio("Parmer County")
 ```
 
-# 20. Stone County
+# 20. Stone County, MS
 
 ```{r}
 #| include: true
