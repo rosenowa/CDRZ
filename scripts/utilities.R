@@ -8,8 +8,17 @@ library(dplyr)
 
 
 # Read in raw data with cdrz tracts
-#
-cdrz_full_data = read.csv(here("data", "data-raw", "cdrz", "cdrz_raw_fema_2024.csv")) %>% 
+
+cdrz_full_data_25 = read.csv(here("data", "data-raw", "cdrz", "cdrz_raw_fema_02_24_25.csv")) %>% 
+  clean_names() %>% 
+  mutate(state_fips = str_pad(state_fips, 2, "left", "0"),
+         county_fips = str_pad(county_fips, 3, "left", "0"),
+         county_code = str_c(state_fips, county_fips),
+         cdrz = 1) %>% 
+  rename(geoid = geoid20,
+         tribal_name = namelsad)
+
+cdrz_full_data_24 = read.csv(here("data", "data-raw", "cdrz", "cdrz_raw_fema_2024.csv")) %>% 
   clean_names() %>% 
   mutate(state_fips = str_pad(state_fips, 2, "left", "0"),
          county_fips = str_pad(county_fips, 3, "left", "0"),
