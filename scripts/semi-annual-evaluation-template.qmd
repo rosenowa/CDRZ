@@ -24,26 +24,48 @@ editor:
 #| echo: false
 library(tidyverse)
 library(janitor)
+library(scales)  
 library(ggplot2)
 library(here)
+library(readr)
 library(dplyr)
+library(rlang)
+library(writexl)
 library(urbnthemes)
+library(fuzzyjoin)
 set_urbn_defaults(style = "print")
 ```
 
 ```{r}
 #| include: false
 #| echo: false
-#reading in Qualtrics data (March 2025)
-evaluation_data_q1_25 =  read.csv(here("data", "qualtrics-data", "CDRZ Evaluation Program Data Collection_March 10, 2025_labels.csv")) %>%  # read.csv(here("data", "qualtrics-data", "CDRZ Evaluation Program Data Collection_March 4, 2025_09.53.csv")) %>%
-  clean_names() %>% 
-  filter(progress == "100") %>% 
-  select(-c(progress, finished, response_id, start_date, end_date, status, ip_address, duration_in_seconds, recorded_date, location_latitude, location_longitude, user_language, distribution_channel, recipient_email )) %>% 
+#reading in Qualtrics data (April 2025)
+evaluation_data_25 = readr::read_csv(here("data", "qualtrics-data", "CDRZ Evaluation Program Data Collection_April 7, 2025_12.39.csv")) %>% clean_names()
+
+```
+
+
+#### Pulling list of qualtrics questions
+```{r}
+qualtrics_questions <- evaluation_data_25 %>% 
+  filter( start_date == "Start Date") %>% 
+  pivot_longer(
+    everything(), 
+    names_to = "Variable name",
+    values_to = "Qualtrics Question"
+  )
+```
+
+#### Cleaning Qualtrics Data
+
+```{r}
+evaluation_data_clean <- evaluation_data_25 %>% 
+  select(-c(progress, finished, response_id, end_date, status, ip_address, duration_in_seconds, recorded_date, location_latitude, location_longitude, user_language, distribution_channel, recipient_email )) %>% 
   rename(
 name	=	qa1_1	,
 email	=	qa1_2	,
 sbp_geos	=	qa2	,
-grantee_type	=	q2_1	,
+grantee_type	=	q2_1_21	,
 community	=	qa2_2	,
 first_data_entry	=	qa2_3	,
 assignment_length	=	q1_1	,
@@ -51,11 +73,11 @@ existing_connections	=	q1_2	,
 length_of_existing_connections	=	q1_3	,
 describe_existing_connections	=	q1_4	,
 describe_existing_connections_other	=	q1_4_6_text	,
-initial_outreach	=	q2_1_1	,
-initial_outreach_month	=	q2_2_1_1	,
-initial_outreach_year	=	q2_2_2_1	,
-main_poc	=	q2_3	,
-initial_outreach_organizations	=	q2_3_1	,
+initial_outreach	=	q2_1_29	,
+initial_outreach_month	=	q2_2_number_1_1	,
+initial_outreach_year	=	q2_2_number_2_1	,
+main_poc	=	q2_3_32	,
+initial_outreach_organizations	=	q2_3_33	,
 initial_outreach_organizations_other	=	q2_3_8_text	,
 no_outreach_explanation	=	q2_4	,
 no_outreach_explanation_other	=	q2_4_4_text	,
@@ -78,116 +100,117 @@ freq_engagement_private_sector	=	q2_10_8	,
 freq_engagement_other	=	q2_10_9	,
 freq_engagement_other_text	=	q2_10_9_text	,
 representative	=	q2_11	,
+representative_text = q2_11_5_text, 
 assistance_types	=	q3	,
 assistance_types_other	=	q3_7_text	,
-municipal_training	=	q3_1_1_1	,
-municipal_CE	=	q3_1_1_2	,
-municipal_planning_process	=	q3_1_1_3	,
-municipal_climate_analysis	=	q3_1_1_4	,
-municipal_project_scoping	=	q3_1_1_5	,
-municipal_grant_writing	=	q3_1_1_6	,
-municipal_project_dev	=	q3_1_1_7	,
-municipal_project_implementation	=	q3_1_1_8	,
-municipal_pub_sector_partnership	=	q3_1_1_9	,
-municipal_outside_pub_sector_partnership	=	q3_1_1_10	,
-municipal_other	=	q3_1_1_11	,
-municipal_other_text	=	q3_1_1_11_text	,
-county_training	=	q3_1_2_1	,
-county_CE	=	q3_1_2_2	,
-county_planning_process	=	q3_1_2_3	,
-county_climate_analysis	=	q3_1_2_4	,
-county_project_scoping	=	q3_1_2_5	,
-county_grant_writing	=	q3_1_2_6	,
-county_project_dev	=	q3_1_2_7	,
-county_project_implementation	=	q3_1_2_8	,
-county_pub_sector_partnership	=	q3_1_2_9	,
-county_outside_pub_sector_partnership	=	q3_1_2_10	,
-county_other	=	q3_1_2_11	,
-county_other_text	=	q3_1_2_11_text	,
-neighborhood_training	=	q3_1_3_1	,
-neighborhood_CE	=	q3_1_3_2	,
-neighborhood_planning_process	=	q3_1_3_3	,
-neighborhood_climate_analysis	=	q3_1_3_4	,
-neighborhood_project_scoping	=	q3_1_3_5	,
-neighborhood_grant_writing	=	q3_1_3_6	,
-neighborhood_project_dev	=	q3_1_3_7	,
-neighborhood_project_implementation	=	q3_1_3_8	,
-neighborhood_pub_sector_partnership	=	q3_1_3_9	,
-neighborhood_outside_pub_sector_partnership	=	q3_1_3_10	,
-neighborhood_other	=	q3_1_3_11	,
-neighborhood_other_text	=	q3_1_3_11_text	,
-other_govt_training	=	q3_1_4_1	,
-other_govt_CE	=	q3_1_4_2	,
-other_govt_planning_process	=	q3_1_4_3	,
-other_govt_climate_analysis	=	q3_1_4_4	,
-other_govt_project_scoping	=	q3_1_4_5	,
-other_govt_grant_writing	=	q3_1_4_6	,
-other_govt_project_dev	=	q3_1_4_7	,
-other_govt_project_implementation	=	q3_1_4_8	,
-other_govt_pub_sector_partnership	=	q3_1_4_9	,
-other_govt_outside_pub_sector_partnership	=	q3_1_4_10	,
-other_govt_other	=	q3_1_4_11	,
-other_govt_other_govt_text	=	q3_1_4_11_text	,
-non_profit_training	=	q3_1_5_1	,
-non_profit_CE	=	q3_1_5_2	,
-non_profit_planning_process	=	q3_1_5_3	,
-non_profit_climate_analysis	=	q3_1_5_4	,
-non_profit_project_scoping	=	q3_1_5_5	,
-non_profit_grant_writing	=	q3_1_5_6	,
-non_profit_project_dev	=	q3_1_5_7	,
-non_profit_project_implementation	=	q3_1_5_8	,
-non_profit_pub_sector_partnership	=	q3_1_5_9	,
-non_profit_outside_pub_sector_partnership	=	q3_1_5_10	,
-non_profit_other	=	q3_1_5_11	,
-non_profit_other_text	=	q3_1_5_11_text	,
-faith_based_training	=	q3_1_6_1	,
-faith_based_CE	=	q3_1_6_2	,
-faith_based_planning_process	=	q3_1_6_3	,
-faith_based_climate_analysis	=	q3_1_6_4	,
-faith_based_project_scoping	=	q3_1_6_5	,
-faith_based_grant_writing	=	q3_1_6_6	,
-faith_based_project_dev	=	q3_1_6_7	,
-faith_based_project_implementation	=	q3_1_6_8	,
-faith_based_pub_sector_partnership	=	q3_1_6_9	,
-faith_based_outside_pub_sector_partnership	=	q3_1_6_10	,
-faith_based_other	=	q3_1_6_11	,
-faith_based_other_text	=	q3_1_6_11_text	,
-private_sector_training	=	q3_1_7_1	,
-private_sector_CE	=	q3_1_7_2	,
-private_sector_planning_process	=	q3_1_7_3	,
-private_sector_climate_analysis	=	q3_1_7_4	,
-private_sector_project_scoping	=	q3_1_7_5	,
-private_sector_grant_writing	=	q3_1_7_6	,
-private_sector_project_dev	=	q3_1_7_7	,
-private_sector_project_implementation	=	q3_1_7_8	,
-private_sector_pub_sector_partnership	=	q3_1_7_9	,
-private_sector_outside_pub_sector_partnership	=	q3_1_7_10	,
-private_sector_other	=	q3_1_7_11	,
-private_sector_other_text	=	q3_1_7_11_text	,
-state_fed_agencies_training	=	q3_1_8_1	,
-state_fed_agencies_CE	=	q3_1_8_2	,
-state_fed_agencies_planning_process	=	q3_1_8_3	,
-state_fed_agencies_climate_analysis	=	q3_1_8_4	,
-state_fed_agencies_project_scoping	=	q3_1_8_5	,
-state_fed_agencies_grant_writing	=	q3_1_8_6	,
-state_fed_agencies_project_dev	=	q3_1_8_7	,
-state_fed_agencies_project_implementation	=	q3_1_8_8	,
-state_fed_agencies_pub_sector_partnership	=	q3_1_8_9	,
-state_fed_agencies_outside_pub_sector_partnership	=	q3_1_8_10	,
-state_fed_agencies_other	=	q3_1_8_11	,
-state_fed_agencies_other_text	=	q3_1_8_11_text	,
-other_training	=	q3_1_9_1	,
-other_CE	=	q3_1_9_2	,
-other_planning_process	=	q3_1_9_3	,
-other_climate_analysis	=	q3_1_9_4	,
-other_project_scoping	=	q3_1_9_5	,
-other_grant_writing	=	q3_1_9_6	,
-other_project_dev	=	q3_1_9_7	,
-other_project_implementation	=	q3_1_9_8	,
-other_pub_sector_partnership	=	q3_1_9_9	,
-other_outside_pub_sector_partnership	=	q3_1_9_10	,
-other_other	=	q3_1_9_11	,
-other_other_text	=	q3_1_9_11_text	,
+municipal_training	=	q3_1_number_1_1	,
+municipal_CE	=	q3_1_number_1_2	,
+municipal_planning_process	=	q3_1_number_1_3	,
+municipal_climate_analysis	=	q3_1_number_1_4	,
+municipal_project_scoping	=	q3_1_number_1_5	,
+municipal_grant_writing	=	q3_1_number_1_6	,
+municipal_project_dev	=	q3_1_number_1_7	,
+municipal_project_implementation	=	q3_1_number_1_8	,
+municipal_pub_sector_partnership	=	q3_1_number_1_9	,
+municipal_outside_pub_sector_partnership	=	q3_1_number_1_10	,
+municipal_other	=	q3_1_number_1_11	,
+municipal_other_text	=	q3_1_number_1_11_text	,
+county_training	=	q3_1_number_2_1	,
+county_CE	=	q3_1_number_2_2	,
+county_planning_process	=	q3_1_number_2_3	,
+county_climate_analysis	=	q3_1_number_2_4	,
+county_project_scoping	=	q3_1_number_2_5	,
+county_grant_writing	=	q3_1_number_2_6	,
+county_project_dev	=	q3_1_number_2_7	,
+county_project_implementation	=	q3_1_number_2_8	,
+county_pub_sector_partnership	=	q3_1_number_2_9	,
+county_outside_pub_sector_partnership	=	q3_1_number_2_10	,
+county_other	=	q3_1_number_2_11	,
+county_other_text	=	q3_1_number_2_11_text	,
+neighborhood_training	=	q3_1_number_3_1	,
+neighborhood_CE	=	q3_1_number_3_2	,
+neighborhood_planning_process	=	q3_1_number_3_3	,
+neighborhood_climate_analysis	=	q3_1_number_3_4	,
+neighborhood_project_scoping	=	q3_1_number_3_5 ,
+neighborhood_grant_writing	=	q3_1_number_3_6	,
+neighborhood_project_dev	=	q3_1_number_3_7	,
+neighborhood_project_implementation	=	q3_1_number_3_8	,
+neighborhood_pub_sector_partnership	=	q3_1_number_3_9	,
+neighborhood_outside_pub_sector_partnership	=	q3_1_number_3_10	,
+neighborhood_other	=	q3_1_number_3_11	,
+neighborhood_other_text	=	q3_1_number_3_11_text	,
+other_govt_training	=	q3_1_number_4_1	,
+other_govt_CE	=	q3_1_number_4_2	,
+other_govt_planning_process	=	q3_1_number_4_3	,
+other_govt_climate_analysis	=	q3_1_number_4_4	,
+other_govt_project_scoping	=	q3_1_number_4_5	,
+other_govt_grant_writing	=	q3_1_number_4_6	,
+other_govt_project_dev	=	q3_1_number_4_7	,
+other_govt_project_implementation	=	q3_1_number_4_8	,
+other_govt_pub_sector_partnership	=	q3_1_number_4_9	,
+other_govt_outside_pub_sector_partnership	=	q3_1_number_4_10	,
+other_govt_other	=	q3_1_number_4_11	,
+other_govt_other_govt_text	=	q3_1_number_4_11_text	,
+non_profit_training	=	q3_1_number_5_1	,
+non_profit_CE	=	q3_1_number_5_2	,
+non_profit_planning_process	=	q3_1_number_5_3	,
+non_profit_climate_analysis	=	q3_1_number_5_4	,
+non_profit_project_scoping	=	q3_1_number_5_5	,
+non_profit_grant_writing	=	q3_1_number_5_6	,
+non_profit_project_dev	=	q3_1_number_5_7	,
+non_profit_project_implementation	=	q3_1_number_5_8	,
+non_profit_pub_sector_partnership	=	q3_1_number_5_9	,
+non_profit_outside_pub_sector_partnership	=	q3_1_number_5_10	,
+non_profit_other	=	q3_1_number_5_11	,
+non_profit_other_text	=	q3_1_number_5_11_text	,
+faith_based_training	=	q3_1_number_6_1	,
+faith_based_CE	=	q3_1_number_6_2	,
+faith_based_planning_process	=	q3_1_number_6_3	,
+faith_based_climate_analysis	=	q3_1_number_6_4	,
+faith_based_project_scoping	=	q3_1_number_6_5	,
+faith_based_grant_writing	=	q3_1_number_6_6	,
+faith_based_project_dev	=	q3_1_number_6_7	,
+faith_based_project_implementation	=	q3_1_number_6_8	,
+faith_based_pub_sector_partnership	=	q3_1_number_6_9	,
+faith_based_outside_pub_sector_partnership	=	q3_1_number_6_10	,
+faith_based_other	=	q3_1_number_6_11	,
+faith_based_other_text	=	q3_1_number_6_11_text	,
+private_sector_training	=	q3_1_number_7_1	,
+private_sector_CE	=	q3_1_number_7_2	,
+private_sector_planning_process	=	q3_1_number_7_3	,
+private_sector_climate_analysis	=	q3_1_number_7_4	,
+private_sector_project_scoping	=	q3_1_number_7_5	,
+private_sector_grant_writing	=	q3_1_number_7_6	,
+private_sector_project_dev	=	q3_1_number_7_7	,
+private_sector_project_implementation	=	q3_1_number_7_8	,
+private_sector_pub_sector_partnership	=	q3_1_number_7_9	,
+private_sector_outside_pub_sector_partnership	=	q3_1_number_7_10	,
+private_sector_other	=	q3_1_number_7_11	,
+private_sector_other_text	=	q3_1_number_7_11_text	,
+state_fed_agencies_training	=	q3_1_number_8_1	,
+state_fed_agencies_CE	=	q3_1_number_8_2	,
+state_fed_agencies_planning_process	=	q3_1_number_8_3	,
+state_fed_agencies_climate_analysis	=	q3_1_number_8_4	,
+state_fed_agencies_project_scoping	=	q3_1_number_8_5	,
+state_fed_agencies_grant_writing	=	q3_1_number_8_6	,
+state_fed_agencies_project_dev	=	q3_1_number_8_7	,
+state_fed_agencies_project_implementation	=	q3_1_number_8_8	,
+state_fed_agencies_pub_sector_partnership	=	q3_1_number_8_9	,
+state_fed_agencies_outside_pub_sector_partnership	=	q3_1_number_8_10	,
+state_fed_agencies_other	=	q3_1_number_8_11	,
+state_fed_agencies_other_text	=	q3_1_number_8_11_text	,
+other_training	=	q3_1_number_9_1	,
+other_CE	=	q3_1_number_9_2	,
+other_planning_process	=	q3_1_number_9_3	,
+other_climate_analysis	=	q3_1_number_9_4	,
+other_project_scoping	=	q3_1_number_9_5	,
+other_grant_writing	=	q3_1_number_9_6	,
+other_project_dev	=	q3_1_number_9_7	,
+other_project_implementation	=	q3_1_number_9_8	,
+other_pub_sector_partnership	=	q3_1_number_9_9	,
+other_outside_pub_sector_partnership	=	q3_1_number_9_10	,
+other_other	=	q3_1_number_9_11	,
+other_other_text	=	q3_1_number_9_11_text	,
 no_assistance_explanation 	=	q3_2	,
 no_assistance_explanation_other	=	q3_2_7_text	,
 community_engagement_activities	=	q3_3	,
@@ -206,8 +229,9 @@ identified_total_funding_amount	=	q3_13_2_1	,
 funding_opp_in_dev	=	q3_14	,
 submitted_funding_sources	=	q3_15_1_1	,
 submitted_total_funding_amount	=	q3_15_2_1	,
-funding_influence	=	q4_12	,
-funding_accessing	=	q4_11	,
+funding_influence	=	q3_16	,
+funding_accessing	=	q3_17	,
+funding_accessed_amount = q3_18, 
 steps_to_resilience	=	q4_1	,
 rmm_leadership	=	q4_2	,
 rmm_organized_efforts	=	q4_3	,
@@ -218,45 +242,974 @@ rmm_goals	=	q4_7	,
 rmm_soultions	=	q4_8	,
 rmm_systems 	=	q4_9	,
 rmm_measurements	=	q4_10	,
-futrue_hire	=	q4_13	,
+future_hire	=	q4_13	,
 no_future_hire	=	q4_14	,
 no_future_hire_other	=	q4_14_6_text) %>% 
  mutate(sbp_geos = case_when(
       sbp_geos == "Disaster Resilience Fellows (led by SBP)" ~ "sbp", 
       sbp_geos == "Southeast Navigator Network (led by Geos Institute)" ~ "geos")) %>% 
-  filter(!name %in% c("Hannah Trautwein", "Makisha Mosley", "Don Gardner", "Sherry Risk"))  %>%
-  mutate(across(where(is.character), ~ na_if(.x, ""))) %>% 
+  mutate(across(where(is.character), ~ na_if(.x, ""))) %>%
+  mutate(community_agree_to_participate = case_when(
+    community_agree_to_participate_other == "No response from community" ~ "No",
+    community_agree_to_participate_other == "Agreed to, but concrete plans have not been developed yet" ~ "Yes",
+    TRUE ~ community_agree_to_participate),
+    initial_outreach = case_when(
+      is.na(initial_outreach) ~ "Yes",
+      TRUE ~ initial_outreach)) %>% 
   mutate(
-    community_agree_to_participate_cleaned = case_when(
-      community_agree_to_participate_other == "Agreed to, but concrete plans have not been developed yet" ~ "Yes",
-      community_agree_to_participate == "Other, please specify" ~ "No",
-       community_agree_to_participate == "No" ~ "No",
-      community_agree_to_participate == "Yes" ~ "Yes")) 
+  community = case_when(
+    name == "Adelaide Bates" & is.na(community) ~ "Dorchester (Summerville) County, SC", 
+    TRUE ~ community),  
+  county = sub(",.*", "", community),
+  name = case_when(
+    recipient_first_name == "Will (New fellow will replace)" ~ "Will (New fellow will replace)",
+    TRUE ~ name), 
+    #all of the NAs are from Alicia Betancourt who confirmed connecting with the communities in the interveiw
+    community_agree_to_participate = case_when(
+      is.na(community_agree_to_participate) ~ "Yes",
+      TRUE ~ community_agree_to_participate)) %>% 
+  mutate(
+    rmm_leadership_num = case_when(
+    rmm_leadership == "Minimal support" ~ 1, 
+    rmm_leadership == "Some support" ~ 2, 
+    rmm_leadership == "Moderate support" ~ 3, 
+    rmm_leadership == "Strong support" ~ 4),
+    rmm_organized_efforts_num = case_when(
+      rmm_organized_efforts == "Somewhat unorganized" ~ 2, 
+      rmm_organized_efforts == "Organized" ~ 3, 
+      rmm_organized_efforts == "Very unorganized" ~ 4),
+    rmm_decision_making_num = case_when(
+      rmm_decision_making == "Somewhat inclusive and transparent" ~ 2, 
+      rmm_decision_making == "Moderately inclusive and transparent" ~ 3),
+    rmm_collaboration_num = case_when(
+        rmm_collaboration == "Limited collaboration" ~ 2, 
+        rmm_collaboration == "Some collaboration"~ 3, 
+        rmm_collaboration == "Strong collaboration"~ 4), 
+    rmm_risk_num = case_when(
+        rmm_risk == "Somewhat well" ~ 2, 
+        rmm_risk == "Well" ~ 3, 
+        rmm_risk == "Very well" ~4),
+    rmm_goals_num = case_when(
+        rmm_goals == "Limited and unclear goals" ~ 2, 
+        rmm_goals == "Some specific goals in place" ~3, 
+        rmm_goals == "Clear, coordinated long term goals" ~4),
+    rmm_soultions_num = case_when(
+        rmm_soultions == "Some specific goals in place" ~ 2,  
+        rmm_soultions == "Limited and unclear goals" ~ 1), 
+    rmm_systems_num = case_when(
+      rmm_systems== "Somewhat effective" ~ 2), 
+    rmm_measurements_num = case_when(
+      rmm_measurements == "No measurement practices in place" ~ 1,
+      rmm_measurements == "A few specific practices for measuring progress" ~ 3, 
+      rmm_measurements == "Some unclear measurement practices" ~3)) 
+
+```
+
+#### Creating Q1 dataset (filtering by start date)
+```{r}
+#filtering out Q1 (submitted BEFORE 4/1/2025 14:39) and assigning numbers to names 
+
+q1_evaluation_data <- evaluation_data_clean %>%
+  mutate(start_date = as.POSIXct(start_date, format="%m/%d/%Y %H:%M")) %>% 
+  filter(start_date <= as.POSIXct("3/4/2025 10:26", format="%m/%d/%Y %H:%M")) %>% 
+  mutate(number_name = dense_rank(factor(name)))
 
 ```
 
 ```{r}
-#| include: false
-#| echo: false
-grantee_submissions <- evaluation_data_q1_25 %>% 
-  group_by(name) %>% 
-  summarise(
-    program = first(sbp_geos),
-    community_name = paste(unique(community), collapse = ","),
-    submissions = n()
-  )%>%
-    knitr::kable(
-      format = "html")
+names <- q1_evaluation_data %>% 
+group_by(sbp_geos,name) %>% count()
 
-print(grantee_submissions)
+
+submissions <-q1_evaluation_data %>% 
+  group_by(sbp_geos) %>% 
+  count()
+
+
+communities <-q1_evaluation_data %>% 
+  group_by(sbp_geos) %>% 
+  summarise(
+    communities = n_distinct(community))  
+
+
+
+communities <-q1_evaluation_data %>% 
+  filter(sbp_geos == "sbp") 
 ```
 
-#### How many submissions were received by SBP and GEOs?
+
+
+
+#### Pulling the names of communities so that I can match them 
+
+```{r}
+submitted_communities <- q1_evaluation_data %>% 
+  select(community, sbp_geos) %>% 
+  count()
+#there were 53 submissions, 40 from GEOs and 13 from SBP 
+
+ partner_cdrz_all_data %>% st_drop_geometry %>% 
+  filter(sbp_geos_footprint != "GEOs") %>% 
+   group_by(geos_community_cluster) %>%
+  count()
+
+sbp_submitted_communities <- q1_evaluation_data %>%
+  filter(sbp_geos == "sbp") %>% 
+  select(community,county, sbp_geos)
+
+sbp_CDRZ_communities <- partner_cdrz_all_data %>% st_drop_geometry %>% 
+  filter(sbp_geos_footprint != "GEOs") %>% 
+ group_by(sbp_community_cluster) %>% 
+  summarize(urban_designation = first(urban_designation))
+
+sbp_eval_char <- q1_evaluation_data %>% filter(sbp_geos == "sbp") %>% 
+  left_join(sbp_CDRZ_communities, by = c("county" = "sbp_community_cluster")) %>% select(-c(number_name, county))
+
+
+## repeating for GEOs
+geos_submitted_communities <- q1_evaluation_data %>% filter(sbp_geos == "geos") %>% 
+  select(county, sbp_geos)
+#there were 53 submissions, 40 from GEOs and 13 from SBP 
+
+geos_CDRZ_communities <- partner_cdrz_all_data %>% st_drop_geometry %>% 
+  filter(sbp_geos_footprint != "SBP") %>%
+  mutate(county_join = sub(",.*", "", geos_community_cluster)) %>% 
+  group_by(county_join) %>% 
+  summarize(urban_designation = first(urban_designation),
+           geos_community_cluster = first(geos_community_cluster)) %>%
+  mutate(county_join = case_when(
+    county_join == "DeSoto County" ~ "Desoto County", 
+    county_join == "Chatham County (Census Tract 40.01" ~ "Chatham County", 
+    TRUE ~ county_join)) 
+
+geos_eval_char <- q1_evaluation_data %>% filter(sbp_geos == "geos") %>% 
+  left_join(geos_CDRZ_communities, by = c("county" = "county_join")) %>% 
+  select(-c(number_name, county, geos_community_cluster))
+
+join <- rbind(sbp_eval_char, geos_eval_char)
+
+
+```
+
+
+
+### Major Table 
+
+#### Summary table for Section 1 
 
 ```{r}
 #| include: true
 #| echo: false
- evaluation_data_q1_25 %>% 
+
+section_1_metrics <- q1_evaluation_data %>%
+  mutate(staffing_positions_available = case_when(
+    sbp_geos == "geos" ~ 13, 
+    sbp_geos == "sbp" ~ 6), 
+ filled_staffing_positions = case_when(
+    sbp_geos == "geos" ~ 13, 
+    sbp_geos == "sbp" ~ 4
+  )) %>% 
+  group_by(sbp_geos) %>%
+  summarise(
+    #filled staffing positions 
+    filled_positions = first(filled_staffing_positions),
+    #share of filled positions out of available positions 
+    share_filled_positions = filled_positions / first(staffing_positions_available),  
+    #connection to place
+    grantee_conn_to_place = sum(existing_connections == "Yes", na.rm = TRUE),
+    #connection to place
+    share_grantee_conn_to_place = sum(existing_connections == "Yes", na.rm = TRUE) / sum(existing_connections %in% c("Yes", "No"), na.rm = TRUE)) %>%
+  pivot_longer(
+    cols = -sbp_geos,
+    names_to = "metrics", 
+    values_to = "value"
+  )
+
+communities <- q1_evaluation_data %>% group_by(sbp_geos,existing_connections) %>% count()
+
+section_1_metrics
+```
+
+#### Summary table for Section 2
+
+```{r}
+#| include: true
+#| echo: false
+
+section_2_outreach_metrics <- q1_evaluation_data %>%
+  group_by(sbp_geos) %>%
+  summarise(
+  #number of communities receiving outreach
+  received_initial_outreach = sum(initial_outreach == "Yes"),   
+  no_outreach = sum(initial_outreach == "No"), 
+ #percent receiving outreach 
+  share_outreach = sum(initial_outreach == "Yes", na.rm = TRUE) / sum(initial_outreach %in% c("Yes", "No"), na.rm = TRUE)) %>%
+  pivot_longer(
+    cols = -sbp_geos,
+    names_to = "metrics",  
+    values_to = "value" )
+
+initial <- q1_evaluation_data %>%
+  filter(initial_outreach == "No") %>% 
+  group_by(sbp_geos,name, community) %>% 
+  count()
+
+```
+
+#Section 2 remaining metrics 
+```{r}
+#IMPORTANT FILTERING !!!
+###I will remove 4 communitites who did not receive at least one outreach attempt to create a new dataset 
+q1_evaluation_data_1 <- q1_evaluation_data %>% filter( initial_outreach == "Yes") 
+
+#those who selected "Other, Please specify" will be counted as "No"
+q1_evaluation_data_1 %>% filter(community_agree_to_participate == "Other. Please specify")
+
+section_2_metrics <- q1_evaluation_data_1 %>% 
+  group_by(sbp_geos) %>% 
+  summarise(
+  #uptake of resources 
+  community_agreed_to_participate =  sum(community_agree_to_participate == "Yes", na.rm = TRUE),
+  community_declined_to_participate = sum(community_agree_to_participate == "No" |community_agree_to_participate == "Other. Please specify", na.rm = TRUE), 
+  uptake_of_resources =  sum(community_agree_to_participate == "Yes", na.rm = TRUE) / sum(community_agree_to_participate %in% c("Yes", "No","Other. Please specify"), na.rm = TRUE)) %>%
+  pivot_longer(
+    cols = -sbp_geos,
+    names_to = "metrics",  
+    values_to = "value" )
+```
+
+#Filtering out communities who didn't agree to participate !!!
+
+```{r}
+q1_evaluation_data_2 <- q1_evaluation_data_1 %>% filter(community_agree_to_participate == "Yes")
+```
+
+###eNGAGEMENT graphs
+```{r}
+engagement_counts <- q1_evaluation_data_2 %>%
+  mutate(across(starts_with("freq_engagement_"), ~replace_na(.x, "Never"))) %>%
+  select(sbp_geos, matches("^freq_"), -freq_engagement_other_text) %>%
+  mutate(frequency_flag = case_when(
+      rowSums(across(starts_with("freq_"), ~ .x %in% c("More than weekly", "Weekly"))) > 0 ~"weekly",
+      rowSums(across(starts_with("freq_"), ~ .x %in% c("Monthly"))) > 0 ~ "monthly",
+       rowSums(across(starts_with("freq_"), ~ .x %in% c("Once or twice"))) > 0 ~"less than monthly",
+       rowSums(across(starts_with("freq_"), ~ .x %in% c("Never"))) > 0 ~"never",
+       TRUE ~ NA_character_ )) %>% 
+   group_by(sbp_geos, frequency_flag) %>% 
+  summarise(
+    number_of_communities = n()) %>% 
+  group_by(sbp_geos) %>% 
+  mutate(
+    percentage = number_of_communities/ sum(number_of_communities)) %>% 
+  pivot_wider(
+    names_from = sbp_geos,
+    values_from = number_of_communities) 
+
+```
+
+
+```{r}
+#Correcting the "other" category
+
+q1_evaluation_data_3 <- q1_evaluation_data_2 %>% 
+  mutate(freq_engagement_other_govt = case_when(
+    freq_engagement_other_text == "Treasure Coast Regional Planning Council" ~ "Monthly",
+    freq_engagement_other_text == "Unincorporated and Tribal Government" ~ "Monthly",
+    freq_engagement_other_text == "Regional Planning Council" ~ "Once or twice",
+    freq_engagement_other_text == "Council of Governments" ~ "Once or twice",
+    freq_engagement_other_text == "Council of Government" ~ "Once or twice",
+    freq_engagement_other_text == "Regional Planning Commission" ~ "Once or twice", 
+    TRUE ~freq_engagement_other_govt )) %>%
+    #correct the freq_engagement_other so that the values aren't double counted
+    mutate(freq_engagement_other = case_when(
+    freq_engagement_other_text == "Treasure Coast Regional Planning Council" ~ "Never",
+    freq_engagement_other_text == "Unincorporated and Tribal Government" ~ "Never",
+    freq_engagement_other_text == "Regional Planning Council" ~ "Never",
+    freq_engagement_other_text == "Council of Governments" ~ "Never",
+    freq_engagement_other_text == "Council of Government" ~ "Never",
+    freq_engagement_other_text == "Regional Planning Commission" ~ "Never", 
+    TRUE ~ freq_engagement_other)) 
+    
+    
+engagement_by_partner_type <- q1_evaluation_data_3 %>%
+  mutate(across(starts_with("freq_engagement_"), ~replace_na(.x, "Never"))) %>%
+  select(sbp_geos, matches("^freq_"), -freq_engagement_other_text) %>%
+  mutate(across(starts_with("freq"), ~ case_when(
+    .x %in% c("More than weekly", "Weekly", "Monthly", "Once or twice") ~ "Yes",
+    .x %in% c("Never") ~ "No",
+    TRUE ~ NA_character_))) %>% 
+  pivot_longer(
+    cols = -sbp_geos,
+    names_to = "partner",
+    values_to = "engaged") %>% 
+   mutate(partner = partner %>%
+           str_remove("^freq_engagement_") %>% 
+           str_replace_all("_", " ") %>%
+           str_to_title())  %>% 
+  filter(engaged == "Yes") %>% 
+  group_by(sbp_geos,partner) %>% 
+  summarise(
+    number_of_communities = n()) %>%
+  pivot_wider(
+    names_from = sbp_geos,
+    values_from = number_of_communities) 
+
+write_xlsx(list(
+  "engagement_by_partner_type" = engagement_by_partner_type,
+  "engagement_counts" = engagement_counts),
+  "engagement_frequency_data.xlsx")
+  
+  
+
+```
+
+
+```{r}
+
+## engagement audiences 
+section_2_engagement <- q1_evaluation_data_2 %>% 
+  mutate(across(where(is.character), ~replace_na(.x, "Never"))) %>% 
+  group_by(sbp_geos) %>%
+  summarise(
+   # sbp_geos = "combined",
+    # Engagement (Municipal govt)
+    engagement_municipal_govt = sum(freq_engagement_municipal_govt != "Never", na.rm = TRUE),
+   # share_engagement_municipal_govt = mean(freq_engagement_municipal_govt != "Never", na.rm = TRUE),
+    
+    # County govt
+    engagement_county_govt = sum(freq_engagement_county_govt != "Never", na.rm = TRUE),
+    #share_engagement_county_govt = mean(freq_engagement_county_govt != "Never", na.rm = TRUE),
+    
+    # State/fed agencies
+    engagement_state_fed_agencies = sum(freq_engagement_state_fed_agencies != "Never", na.rm = TRUE),
+   # share_engagement_state_fed_agencies = mean(freq_engagement_state_fed_agencies != "Never", na.rm = TRUE),
+    
+    # Other govt
+    engagement_other_govt = sum(freq_engagement_other_govt != "Never", na.rm = TRUE),
+  #  share_engagement_other_govt = mean(freq_engagement_other_govt != "Never", na.rm = TRUE),
+    
+    # Neighborhood Associations
+    engagement_neighborhood_associations = sum(freq_engagement_neighborhood_associations != "Never", na.rm = TRUE),
+  #  share_engagement_neighborhood_associations = mean(freq_engagement_neighborhood_associations != "Never", na.rm = TRUE),
+    
+    # Nonprofits
+    engagement_non_profits = sum(freq_engagement_non_profits != "Never", na.rm = TRUE),
+  #  share_engagement_non_profits = mean(freq_engagement_non_profits != "Never", na.rm = TRUE),
+    
+    # Faith Based
+    engagement_faith_based = sum(freq_engagement_faith_based != "Never", na.rm = TRUE),
+  #  share_engagement_faith_based = mean(freq_engagement_faith_based != "Never", na.rm = TRUE),
+    
+    # Private Sector
+    engagement_private_sector = sum(freq_engagement_private_sector != "Never", na.rm = TRUE),
+  #  share_engagement_private_sector = mean(freq_engagement_private_sector != "Never", na.rm = TRUE),
+    
+    # Other
+    engagement_other = sum(freq_engagement_other != "Never", na.rm = TRUE),
+  #  share_engagement_other = mean(freq_engagement_other != "Never", na.rm = TRUE)
+  ) #%>%
+  pivot_longer(
+    cols = -sbp_geos,
+    names_to = "partner",
+    values_to = "count"
+  )
+
+#function to count interactions with each partner type
+engagement_by_partner  <- function(data, ...) {
+  data %>%
+    mutate(across(where(is.character), ~replace_na(.x, "Never"))) %>%
+    select(sbp_geos, all_of(c(...))) %>%   
+    pivot_longer(cols = -sbp_geos,
+                 names_to = "audience", 
+                 values_to = "frequency") %>% 
+    filter (!is.na(frequency)) %>% 
+    group_by(sbp_geos, audience) %>%
+    summarise(n = n(), .groups = "drop") %>%
+    group_by(sbp_geos) %>%
+    mutate(
+      audience_total = sum(n),
+      percent = n / audience_total,
+       label = paste0(round(percent, 1), "% (n = ", n, ")")) %>%
+    ungroup() 
+}
+
+#getting data on engagement by partner type using function "engagement_by_partner"
+engagement_by_partner_df <- engagement_by_partner(
+q1_evaluation_data_2, 
+"freq_engagement_municipal_govt", 
+"freq_engagement_county_govt",
+"freq_engagement_state_fed_agencies",
+"freq_engagement_neighborhood_associations",
+"freq_engagement_non_profits",
+"freq_engagement_private_sector", 
+"freq_engagement_faith_based", 
+"freq_engagement_other") 
+
+engagement_by_partner_df <- engagement_by_partner_df %>%
+ mutate(audience = audience %>%
+           str_remove("^freq_engagement_") %>% 
+           str_replace_all("_", " ") %>%
+           str_to_title())  %>% 
+  mutate( 
+  sbp_geos = case_when(
+   sbp_geos == "geos" ~ "Navigators", 
+   sbp_geos == "sbp" ~"Fellows"))
+
+
+engagement_by_partner <- 
+  ggplot(engagement_by_partner_df, aes(x = audience, y = percent, fill = sbp_geos)) +
+geom_bar(stat = "identity", position = "dodge") +  
+  labs(
+    x = "Engagement audience", 
+    y = "Percent", 
+    title = "Frequency of Engagement by Partner Type",
+    fill = "Partner Type"
+  ) +
+  geom_text(aes(label = n), position = position_dodge(width = 0.71), vjust = -0.5) + 
+   scale_y_continuous(expand = expansion(mult = c(0.01, 1)),
+                     breaks = seq(0.25, 1, 0.25),
+                     labels = scales::percent) +
+  theme( axis.text.x = element_text(angle = 45, hjust = 1)) 
+engagement_by_partner
+
+ggsave("engagement_by_partner.png", engagement_by_partner, width = 4,
+       height = 6)
+
+#engagement audience bar plot 
+
+engagement_audience <- 
+  ggplot(section_2_engagement, aes(x = frequency, y = percent, fill = audience)) +
+geom_bar(stat = "identity", position = "dodge") +  
+  labs(
+    x = "Frequency", 
+    y = "Percent", 
+    title = "Frequency of Engagement by Partner Type",
+    fill = "Partner Type"
+  ) +
+  geom_text(aes(label = n), position = position_dodge(width = 0.71), vjust = -0.5) + 
+  theme_minimal() +  
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~sbp_geos)
+
+#write.csv( section_2_engagement,"section_2_engagement.csv")
+```
+
+
+```{r}
+### Frequency by audience type
+ engagement_frequency <- function(data, ...) {
+  data %>%
+    mutate(across(where(is.character), ~replace_na(.x, "Never"))) %>%
+    select(sbp_geos, all_of(c(...))) %>%   
+    pivot_longer(cols = -sbp_geos,
+                 names_to = "audience", 
+                 values_to = "frequency") %>% 
+    mutate(audience = factor(audience, levels = c("freq_engagement_municipal_govt", 
+"freq_engagement_county_govt",
+"freq_engagement_state_fed_agencies",
+"freq_engagement_neighborhood_associations",
+"freq_engagement_non_profits",
+"freq_engagement_private_sector", 
+"freq_engagement_faith_based", 
+"freq_engagement_other"))) %>%
+    mutate(frequency = factor(frequency, levels = c("More than weekly", "Weekly",
+       "Monthly", "Once or twice", "Never"
+    ))) %>%
+ group_by(sbp_geos, audience, frequency) %>%
+    summarise(n = n(), .groups = "drop") %>%
+    group_by(sbp_geos, audience) %>%
+    mutate(
+      audience_total = sum(n),
+      percent = n / audience_total * 100,
+       label = paste0(round(percent, 1), "% (n = ", n, ")")) %>%
+    ungroup() %>%
+    select(-audience_total) 
+}
+
+
+engagement_frequency_df <- q1_evaluation_data_2 %>%
+  mutate(across(where(is.character), ~replace_na(.x, "Never"))) %>%
+  select(
+    sbp_geos,
+    freq_engagement_municipal_govt,
+    freq_engagement_county_govt,
+    freq_engagement_state_fed_agencies,
+    freq_engagement_neighborhood_associations,
+    freq_engagement_non_profits,
+    freq_engagement_private_sector,
+    freq_engagement_faith_based,
+    freq_engagement_other
+  ) %>%
+  pivot_longer(
+    cols = -sbp_geos,
+    names_to = "audience",
+    values_to = "frequency"
+  )%>% 
+    mutate(audience = factor(audience, 
+levels = c("freq_engagement_municipal_govt", 
+"freq_engagement_county_govt",
+"freq_engagement_state_fed_agencies",
+"freq_engagement_neighborhood_associations",
+"freq_engagement_non_profits",
+"freq_engagement_private_sector", 
+"freq_engagement_faith_based", 
+"freq_engagement_other"))) %>%
+    mutate(frequency = factor(frequency, levels = c("More than weekly", "Weekly",
+       "Monthly", "Once or twice", "Never"
+    ))) %>%
+ group_by(sbp_geos, audience, frequency) %>%
+    summarise(n = n(), .groups = "drop") %>%
+    group_by(sbp_geos, audience) %>%
+    mutate(
+      audience_total = sum(n),
+      percent = n / audience_total) %>%
+    ungroup() %>%
+    select(-audience_total)%>%
+  mutate(audience = audience %>%
+           str_remove("^freq_engagement_") %>% 
+           str_replace_all("_", " ") %>%
+           str_to_title())
+
+write.csv(engagement_frequency_df, "engagement_frequency_df.csv")
+```
+
+
+```{r}
+engagement_frequency_df <- q1_evaluation_data_2 %>%
+  mutate(across(where(is.character), ~replace_na(.x, "Never"))) %>%
+  select(
+    sbp_geos,
+    freq_engagement_municipal_govt,
+    freq_engagement_county_govt,
+    freq_engagement_state_fed_agencies,
+    freq_engagement_neighborhood_associations,
+    freq_engagement_non_profits,
+    freq_engagement_private_sector,
+    freq_engagement_faith_based,
+    freq_engagement_other
+  ) %>%
+  pivot_longer(
+    cols = -sbp_geos,
+    names_to = "audience",
+    values_to = "frequency"
+  ) %>%
+   mutate(
+    audience = case_when(
+      audience %in% c("freq_engagement_municipal_govt", "freq_engagement_county_govt") ~ "Local Government",
+      TRUE ~ "Other" ),
+    frequency = factor(frequency, levels = c(
+      "More than weekly", "Weekly", "Monthly", "Once or twice", "Never" ))) %>%
+  group_by(sbp_geos, audience, frequency) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(sbp_geos, audience) %>%
+  mutate(
+    audience_total = sum(n),
+    percent = n / audience_total
+  ) %>%
+  ungroup() %>%
+ ungroup() %>%
+select(sbp_geos, audience, frequency, percent, n)
+
+# Pivot wider for Excel use
+engagement_wide_excel <- engagement_frequency_df %>%
+  pivot_wider(
+    names_from = sbp_geos,
+    values_from = c(n, percent),
+    names_glue = "{sbp_geos}_{.value}"
+  ) %>%
+  replace_na(list(
+    sbp_n = 0, sbp_percent = 0,
+    geos_n = 0, geos_percent = 0
+  ))
+
+geos_percent_wide <- engagement_wide_excel %>%
+  select(audience, frequency, geos_percent) %>%
+  pivot_wider(
+    names_from = audience,
+    values_from = geos_percent,
+    values_fill = 0  # Fill NAs with 0 for Excel compatibility
+  )
+sbp_percent_wide <- engagement_wide_excel %>%
+  select(audience, frequency, sbp_percent) %>%
+  pivot_wider(
+    names_from = audience,
+    values_from = sbp_percent,
+    values_fill = 0  # Fill NAs with 0 for Excel compatibility
+  )
+
+write_xlsx(list("geos_percent" = geos_percent_wide, 
+                "sbp_percent" = sbp_percent_wide), "engagement_frequency_data.xlsx")
+
+
+
+```{r}
+
+#engagement mode
+
+methods_of_engagement_df <- q1_evaluation_data_2 %>% 
+  filter(!is.na(community_engagement_activities)) %>% 
+  separate_rows(community_engagement_activities, sep =",\\s*")  %>%
+  mutate(community_engagement_activities = case_when(
+    community_engagement_activities == "Workshops and training sessions " ~ "Workshops and training sessions", 
+   community_engagement_activities ==  "Other. Please specify" ~ "Other", 
+   TRUE ~ community_engagement_activities))  %>% 
+  group_by(community_engagement_activities) %>%
+  count() %>%
+  ungroup() %>% 
+  mutate(percentage = n / sum(n) * 100,
+         label = paste0(round(percentage, 1), "% (n = ", n, ")")) %>% arrange(community_engagement_activities)
+ 
+methods_of_engagement_geos <- q1_evaluation_data_2 %>% filter(sbp_geos == "geos") %>%
+  filter(!is.na(community_engagement_activities)) %>% 
+  separate_rows(community_engagement_activities, sep =",\\s*")  %>%
+  mutate(community_engagement_activities = case_when(
+    community_engagement_activities == "Workshops and training sessions " ~ "Workshops and training sessions", 
+   community_engagement_activities ==  "Other. Please specify" ~ "Other", 
+   TRUE ~ community_engagement_activities))  %>% 
+  group_by(community_engagement_activities) %>%
+  count() %>%
+  ungroup() %>% 
+  mutate(percentage = n / sum(n) * 100,
+         label = paste0(round(percentage, 1), "% (n = ", n, ")")) %>% arrange(community_engagement_activities)
+
+methods_of_engagement_sbp <- q1_evaluation_data_2 %>% 
+  filter(sbp_geos == "sbp") %>%
+  filter(!is.na(community_engagement_activities)) %>% 
+  separate_rows(community_engagement_activities, sep =",\\s*")  %>%
+  mutate(community_engagement_activities = case_when(
+    community_engagement_activities == "Workshops and training sessions " ~ "Workshops and training sessions",
+   community_engagement_activities ==  "Other. Please specify" ~ "Other",
+   TRUE ~ community_engagement_activities))  %>%
+  group_by(community_engagement_activities) %>%
+  count() %>%
+  ungroup() %>% 
+  mutate(percentage = n / sum(n) * 100,
+         label = paste0(round(percentage, 1), "% (n = ", n, ")")) %>% arrange(community_engagement_activities)
+
+  
+  
+#write_xlsx(list(
+    "GEOS" = methods_of_engagement_geos,
+    "SBP" = methods_of_engagement_sbp,
+    "Combined" = methods_of_engagement_df),  "methods_of_engagement_summary.xlsx")
+
+
+#### Representative Engagement   
+#Can only report on SBPs data 
+q1_evaluation_data_2%>% 
+#  filter(sbp_geos != "geos") %>%
+  group_by(sbp_geos, representative) %>% 
+  count()%>%
+    knitr::kable(
+      format = "html")
+```
+
+
+### sECTION 3: oUTPUTS 
+```{r}
+##Engagement Characterizations
+
+
+###Assistance Types
+ assistance_types_sbp_geos <- q1_evaluation_data_2 %>% 
+  separate_rows(assistance_types, sep =",\\s*")  %>%
+  mutate(assistance_types = case_when(
+    assistance_types == "Other. Please specify" ~ "Other", 
+    TRUE ~ assistance_types )) %>% 
+  group_by(sbp_geos, assistance_types) %>% 
+  summarise(n = n(), .groups = "drop")  %>% 
+   pivot_wider(
+    names_from = sbp_geos,
+    values_from = n)  
+
+  
+write.csv(assistance_types_sbp_geos, "assistance_types_sbp_geos.csv")
+
+ assistance_types_df <- q1_evaluation_data_2 %>% 
+  separate_rows(assistance_types, sep =",\\s*")  %>%
+  mutate(assistance_types = case_when(
+    assistance_types == "Other. Please specify" ~ "Other", 
+    TRUE ~ assistance_types )) %>% 
+ group_by(assistance_types) %>%
+  count() %>%
+  ungroup() %>% 
+  mutate(percentage = n / sum(n) * 100,
+         label = paste0(round(percentage, 1), "% (n = ", n, ")")) %>% arrange(assistance_types)
+ 
+write_xlsx(list(
+    "GEOs_sbp" = assistance_types_df,
+    "Combined" = assistance_types_sbp_geos),  "assitance_types_summary.xlsx")
+
+#### What stage of project development are communities in?
+project_development_sbp_geos <- q1_evaluation_data_2 %>%
+  filter(!is.na(project_stage)) %>%
+  separate_rows(project_stage, sep = ",\\s*") %>%  
+  mutate(project_stage = case_when(
+    project_stage == "Data gathering " ~ "Data gathering",
+    TRUE ~ project_stage)) %>%
+  group_by(sbp_geos, project_stage) %>% 
+  summarise(n = n(), .groups = "drop") %>%
+    group_by(sbp_geos) %>%
+    mutate(
+      sbp_geos_total = sum(n),
+      percent = n / sbp_geos_total * 100,
+       label = paste0(round(percent, 1), "% (n = ", n, ")")) %>%
+    ungroup() %>% 
+    arrange(project_stage, sbp_geos)
+
+
+project_development_df <- q1_evaluation_data_2 %>%
+  filter(!is.na(project_stage)) %>%
+  separate_rows(project_stage, sep = ",\\s*") %>%  
+  mutate(project_stage = case_when(
+    project_stage == "Data gathering " ~ "Data gathering",
+    TRUE ~ project_stage)) %>%
+   group_by (project_stage) %>%
+ summarise(n = n(), .groups = "drop") %>%
+    mutate(
+      sbp_geos_total = sum(n),
+      percent = n / sbp_geos_total * 100,
+       label = paste0(round(percent, 1), "% (n = ", n, ")")) %>%
+    ungroup() %>% 
+    arrange(project_stage)
+      
+write_xlsx(list(
+    "GEOs_sbp" = project_development_sbp_geos,
+    "Combined" = project_development_df),  "project_development_sbp_geos.xlsx")
+
+#funding opps identified 
+
+#### Number of funding opportunites IDENTIFIED
+identified <- q1_evaluation_data_2 %>%
+  filter(!is.na(identified_funding_sources)) %>% 
+  mutate(identified_funding_buckets = case_when(
+    identified_funding_sources == "0" ~ "0",
+    identified_funding_sources == "1" ~ "1-5",
+     identified_funding_sources == "2" ~ "1-4",
+     identified_funding_sources == "3" ~ "1-4",
+     identified_funding_sources == "9" ~ "5-9",
+     identified_funding_sources == "15" ~ "10-15")) %>% 
+  group_by(identified_funding_buckets) %>% 
+  count() %>%
+  ungroup() %>% 
+  mutate(percentage = n / sum(n) * 100,
+         label = paste0(round(percentage, 1), "% (n = ", n, ")")) %>% arrange(identified_funding_buckets)
+
+#### Number of funding opportunites Submitted
+submitted <- q1_evaluation_data_2 %>% 
+  filter(sbp_geos != "geos") %>% 
+  mutate(submitted_funding_sources  = case_when(
+      is.na(submitted_funding_sources) ~ "0",
+      TRUE ~ submitted_funding_sources)) %>% 
+  group_by(submitted_funding_sources) %>% 
+  count() %>%
+  ungroup() %>% 
+  mutate(percentage = n / sum(n) * 100,
+         label = paste0(round(percentage, 1), "% (n = ", n, ")")) %>% arrange(submitted_funding_sources)
+
+#funding in development 
+funding_in_dev <- q1_evaluation_data_2 %>% 
+  filter(sbp_geos == "sbp") %>%
+  mutate (funding_opp_in_dev = case_when(
+    funding_opp_in_dev == "I am currently working on applications for potentially 4 grants in Galveston County. Each partner currently has a 'project grant' and a 'planning grant' goal." ~ "4", 
+   funding_opp_in_dev == "Berkeley County was impacted by Hurricane Debby Currently trying to meet with county to discuss Public Assistance and Fema Reimbursement," ~"1", 
+   funding_opp_in_dev == "2, HMGP and BRIC" ~ "2", 
+   funding_opp_in_dev == "1 AARP Grant" ~ "1",
+   is.na(funding_opp_in_dev) ~ "0",
+   TRUE ~ as.character(funding_opp_in_dev))) %>% 
+  group_by(funding_opp_in_dev) %>% 
+  count() 
+
+#funding influenced
+funding_influence <- q1_evaluation_data_2 %>% 
+  filter(!is.na(funding_influence)) %>%
+  filter(sbp_geos == "sbp") %>%
+  group_by(funding_influence) %>% 
+  count() %>%
+  ungroup() %>% 
+  mutate(percentage = n / sum(n) * 100,
+         label = paste0(round(percentage, 1), "% (n = ", n, ")")) %>% arrange(funding_influence)
+
+#funding accessed
+funding_accessed <- q1_evaluation_data_2 %>% 
+  filter(sbp_geos == "sbp") %>%
+  filter(!is.na(funding_accessing)) %>%
+  group_by(funding_accessing) %>% 
+  count() %>%
+  ungroup() %>% 
+  mutate(percentage = n / sum(n) * 100,
+         label = paste0(round(percentage, 1), "% (n = ", n, ")")) %>% arrange(funding_accessing)
+
+#funding accessed amount
+funding_accessed <- q1_evaluation_data_2 %>% 
+  filter(sbp_geos == "sbp") %>%
+  select(funding_accessed_amount)
+ 
+#community engagement 
+community_engagement_binary <- q1_evaluation_data_2 %>% 
+  filter(sbp_geos == "geos") %>%
+  mutate(community_engagement_activities_binary = case_when(
+    is.na(community_engagement_activities) ~ "No", 
+     TRUE ~ "Yes"), 
+    community_engagement_activities_binary = factor(community_engagement_activities_binary, levels = c("Yes", "No"))) %>%  
+  group_by(community_engagement_activities_binary) %>%  count() %>% 
+  ungroup() %>% 
+  mutate(percentage = n / sum(n) * 100,
+         label = paste0(round(percentage, 1), "% (n = ", n, ")"))
+
+```
+
+
+##Section 5
+
+```{r}
+#steps to resilience 
+rsteps_sbp_geos <- q1_evaluation_data_2 %>% 
+  filter(!is.na(steps_to_resilience)) %>%
+  group_by(sbp_geos, steps_to_resilience) %>% 
+  summarise(n = n(), .groups = "drop") %>%
+    group_by(sbp_geos) %>%
+    mutate(
+      sbp_geos_total = sum(n),
+      percent = n / sbp_geos_total * 100,
+       label = paste0(round(percent, 1), "% (n = ", n, ")")) %>%
+    ungroup() %>% 
+    arrange(steps_to_resilience, sbp_geos)
+
+#steps to resilience 
+rsteps_df <- q1_evaluation_data_2 %>% 
+  filter(!is.na(steps_to_resilience)) %>%
+  group_by(sbp_geos, steps_to_resilience) %>% 
+  count() %>%
+  ungroup() %>% 
+  group_by(sbp_geos) %>%
+  mutate(percentage = n / sum(n)) %>% 
+  pivot_wider(
+    names_from = sbp_geos,
+    values_from = c(n, percentage)) 
+
+write.csv(rsteps_df, "rsteps_df.csv")
+```
+
+
+```{r}
+#rmm
+
+
+order <- c(
+    "Understanding Risk",
+    "Resilience Leadership",
+    "Organized Efforts",
+    "Decision-Making",
+    "Collaboration",
+    "Resilience Goals",
+    "Resilience Solutions",
+    "Systems thinking",
+    "Measurements")
+
+rmm_function <- function(data, ...) {
+  data %>%
+    select(all_of(c(...))) %>%
+      pivot_longer(cols = everything(),
+                 names_to = "resilience_steps", 
+                 values_to = "values") %>% 
+    filter(!is.na(values)) %>%
+ group_by( resilience_steps) %>% 
+  mutate(average_value = round(mean(values),1)) }
+
+
+rmm_df <- rmm_function(q1_evaluation_data_2 %>% filter(sbp_geos == "sbp"),  
+"rmm_leadership_num",
+"rmm_organized_efforts_num" ,
+"rmm_decision_making_num",
+"rmm_collaboration_num" ,
+"rmm_risk_num" ,
+"rmm_goals_num",
+"rmm_soultions_num" ,
+"rmm_systems_num" ,
+"rmm_measurements_num") %>% 
+mutate(resilience_steps = case_when(
+ resilience_steps == "rmm_leadership_num" ~ "Resilience Leadership", 
+ resilience_steps == "rmm_organized_efforts_num" ~ "Organized Efforts",
+ resilience_steps == "rmm_decision_making_num" ~ "Decision-Making",
+ resilience_steps == "rmm_collaboration_num" ~ "Collaboration",
+ resilience_steps == "rmm_risk_num" ~ "Understanding Risk",
+ resilience_steps == "rmm_goals_num" ~ "Resilience Goals",
+ resilience_steps == "rmm_soultions_num" ~ "Resilience Solutions",
+ resilience_steps == "rmm_systems_num" ~ "Systems thinking",
+ resilience_steps == "rmm_measurements_num" ~ "Measurements",
+ TRUE ~ resilience_steps)) %>%
+  mutate(
+  metric = paste0(resilience_steps, " (", values, ")")) %>% 
+  group_by(resilience_steps) %>% 
+  summarise(
+   value = first(average_value)) 
+
+rmm_df$resilience_steps <- factor(rmm_df$resilience_steps, levels = order)
+
+rmm_plot1 <- rmm_df %>% 
+  ggplot(aes(x = value, y = factor(1))) +
+  geom_point(alpha = 0.2, size = 5) +
+  geom_text(data = subset(rmm_df, value == value), 
+            aes(label = value), 
+            vjust = -1.4) + 
+  labs(y = NULL) +
+  scale_x_continuous(expand = expansion(mult = c(0.002, 0)), 
+                     limits = c(1, 4)) +
+  scale_y_discrete(labels = NULL) +
+  labs(title = "",
+       x = "Resilience Maturity Scale",
+       y = NULL) +
+ theme(axis.ticks.y = element_blank()) + 
+ facet_wrap(~ resilience_steps) 
+
+rmm_plot1
+
+ggsave("rmm_plot1.png", rmm_plot1)
+
+  
+```
+
+
+
+
+
+
+
+
+####!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+####!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+####                  INPUTS 
+####!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+####!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+#### Share of grantee staff positions that are filled
+
+```{r}
+#| include: true
+#| echo: false
+ 
+#TOTAL positions available at GEOs == 13 (more like 12 because Scott Jackson was helping Courtnery in Q1)
+#TOTAL positions available at SBP == 6 
+
+q1_evaluation_data %>%
+  group_by(number_name,sbp_geos) %>% 
+  summarise(
+    submissions = n()
+  ) %>%
+    knitr::kable(
+      format = "html")
+
+```
+
+#### How many submissions were received by SBP and GEOs? (to inform Share of grantee staff positions that are filled )
+
+```{r}
+#| include: true
+#| echo: false
+ q1_evaluation_data %>% 
   group_by(sbp_geos) %>% 
   summarise(
     submissions = n()
@@ -266,268 +1219,497 @@ print(grantee_submissions)
 
 ```
 
-#### How many communities are actively engaged?
-
+#### Share of grantee staff that have a preexisting connection/network in place 
 ```{r}
 #| include: true
 #| echo: false
- evaluation_data_q1_25 %>% 
-  filter(sbp_geos == "geos") %>%
-  group_by( community_agree_to_participate_cleaned) %>% 
- count()%>%
-    knitr::kable(
-      format = "html")
-
+ q1_evaluation_data %>% 
+  group_by(sbp_geos, existing_connections) %>% 
+   count()%>%
+   knitr::kable(
+   format = "html")
 ```
+
+
+####!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+####!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+####                  ACTIVITES 
+####!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+####!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+#### Share of CDRZs communities who received at least 1 outreach attempt 
 
 ```{r}
 #| include: false
 #| echo: false
-poc_sbp_names <- evaluation_data_q1_25 %>% 
-  filter(sbp_geos == "sbp") %>%
-  select(name, community, main_poc)
+##the NA from GEOS should be a "Yes"- they answered questions later about ways they engaged with the community 
 
-poc_geos_names <- evaluation_data_q1_25 %>% 
-  filter(sbp_geos == "geos") %>%
-  select(name, community, main_poc)
-
-write_csv(poc_geos_names, "poc_geos_names.csv")
+q1_evaluation_data_2 %>% 
+  group_by(initial_outreach, sbp_geos) %>%
+  count()#%>%
+    knitr::kable(
+      format = "html")
 ```
 
-#### Summary table of key metrics
-
-Metrics: Existing connection to place, community uptake of resources (community agreed to participate), and engagement with various community partner types
-
-Question: Do we want to have these as counts? 
-
+#### Share of CDRZ communities who are actively engaged (e.g. had a completed touchpoint over the last quarter) 
 ```{r}
-#| include: true
+#| include: false
 #| echo: false
 
-evaluation_data_q1_25 %>%
-  #group_by(sbp_geos) %>%
-  summarise(
-    footprint = "sbp and geos",
-    grantee_conn_to_place = sum(existing_connections == "Yes", na.rm = TRUE) / sum(existing_connections %in% c("Yes", "No"), na.rm = TRUE),
-    #outreach 
-  outreach = sum(initial_outreach == "Yes", na.rm = TRUE) / sum(initial_outreach %in% c("Yes", "No"), na.rm = TRUE),
-  #uptake of resources 
-  uptake_of_resources =  sum(community_agree_to_participate_cleaned == "Yes", na.rm = TRUE) / sum(community_agree_to_participate_cleaned %in% c("Yes", "No"), na.rm = TRUE),
- #engagement (Municipal govt)
-   engagement_municipal_govt =  sum(freq_engagement_municipal_govt != "Never", na.rm = TRUE) / 
-    sum(!is.na(freq_engagement_municipal_govt)),
- #engagement (County govt)
-    engagement_county_govt =  sum(freq_engagement_county_govt != "Never", na.rm = TRUE) / 
-    sum(!is.na(freq_engagement_county_govt)),
- #engagement (State/fed agencies)
-    engagement_state_fed_agencies =  sum(freq_engagement_state_fed_agencies != "Never", na.rm = TRUE) / 
-    sum(!is.na(freq_engagement_state_fed_agencies)),
- #engagement (Other govt)
-    engagement_other_govt =  sum(freq_engagement_other_govt != "Never", na.rm = TRUE) / 
-    sum(!is.na(freq_engagement_other_govt)),
- #engagement (Neighborhood Associations)
-    engagement_neighborhood_associations =  sum(freq_engagement_neighborhood_associations != "Never", na.rm = TRUE) / 
-    sum(!is.na(freq_engagement_neighborhood_associations)),
- #engagement (Nonprofits)
-  engagement_non_profits =  sum(freq_engagement_non_profits != "Never", na.rm = TRUE) / 
-    sum(!is.na(freq_engagement_non_profits)),
- #engagement (Faith Based)
-    engagement_faith_based =  sum(freq_engagement_faith_based != "Never", na.rm = TRUE) / 
-    sum(!is.na(freq_engagement_faith_based)),
- #engagement (Private Sector)
-    engagement_private_sector =  sum(freq_engagement_private_sector != "Never", na.rm = TRUE) / 
-    sum(!is.na(freq_engagement_private_sector)),
-  #engagement (Other)
-    engagement_other =  sum(freq_engagement_other != "Never", na.rm = TRUE) / 
-    sum(!is.na(freq_engagement_other))) %>% pivot_longer(
-    cols = -footprint,
-    names_to = "metrics", 
-    values_to = "value"
-  ) %>%
+### cleaning data -- grantees left engagement_last_or_prior_quarter "NA" even though they had completed a touchpoint
+q1_evaluation_data_connected %>% 
+group_by(engagement_last_or_prior_quarter, sbp_geos) %>% 
+  count()%>%
     knitr::kable(
       format = "html")
 
 ```
 
-#### Engagement frequency by partner type
 
-Question: Do we want to visualize this? Do we want to filter by specific frequencies?
+#### Share of CDRZs communities who anticipate future engagement 
+```{r}
+#| include: false
+#| echo: false
+
+q1_evaluation_data_2 %>% 
+  group_by(anticipate_future_engagement, sbp_geos) %>% 
+  count()%>%
+    knitr::kable(
+      format = "html")
+```
+
+#####Share of CDRZs communities who previously engaged who stopped engagement with grantee  
+```{r}
+#| include: false
+#| echo: false
+
+q1_evaluation_data_2 %>% 
+  group_by(#figure out what variable to use, sbp_geos) %>% 
+  count()%>%
+    knitr::kable(
+      format = "html")
+```
+
+
+####Pie chart: Engagement by partner type  
 
 ```{r}
-#| include: true
-#| echo: false
-engagement_frequency <- function(data, ...) {
+#function to count interactions with each partner type
+engagement_by_partner  <- function(data, ...) {
   data %>%
     select(all_of(c(...))) %>%   
-    pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>% 
-    group_by(variable, value) %>% 
-    count() %>%
-    ungroup()
+    pivot_longer(cols = everything(),
+                 names_to = "audience", 
+                 values_to = "frequency") %>% 
+    filter (!is.na(frequency)) %>% 
+    group_by(audience) %>% 
+    summarize(
+      n = n(),  
+      .groups = "drop") %>%
+    mutate(percent = n / sum(n) * 100,
+            label = paste0(round(percent, 0), "%")) %>%  
+    ungroup() 
 }
 
-
-engagement_frequency(evaluation_data_q1_25, "freq_engagement_municipal_govt", 
+#getting data on engagement by partner type using function "engagement_by_partner"
+engagement_by_partner_df <- engagement_by_partner(q1_evaluation_data_2, 
+"freq_engagement_municipal_govt", 
 "freq_engagement_county_govt",
 "freq_engagement_state_fed_agencies",
 "freq_engagement_neighborhood_associations",
 "freq_engagement_non_profits",
 "freq_engagement_private_sector", 
 "freq_engagement_faith_based", 
-"freq_engagement_other") %>%
-    knitr::kable(
-      format = "html")
-      
+"freq_engagement_other") 
+
+engagement_by_partner_df <- engagement_by_partner_df %>%
+ mutate(audience = audience %>%
+           str_remove("^freq_engagement_") %>% 
+           str_replace_all("_", " ") %>%
+           str_to_title()) 
+
+
+engagement_by_partner_pie_chart <- 
+  ggplot(engagement_by_partner_df, aes(x = "", y = n, fill = audience)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  geom_text(aes(label = label), 
+            position = position_stack(vjust = 0.7), 
+            color = "white", size = 4) +  
+  theme_void() +  
+  labs(fill = "Engagement by Partner Type",
+       title = "") +
+  theme(legend.position = "right")
+engagement_by_partner_pie_chart
+
+ggsave("engagement_by_partner_pie_chart.png", engagement_by_partner_pie_chart,  width = 6,
+       height = 4)
 ```
 
-#### Ways to engage with the community
 
-Question: Should this be visualized as a pie chart? 
+#### Bar chart: Frequency of Engagement by Partner Type  
 
 ```{r}
 #| include: true
 #| echo: false
- evaluation_data_q1_25 %>% 
-  group_by(community_engagement_activities) %>% 
-  count() %>%
-    knitr::kable(
-      format = "html")
-      
+engagement_frequency <- function(data, ...) {
+  data %>%
+    mutate(across(everything(), ~replace_na(.x, "Never"))) %>%
+    select(all_of(c(...))) %>%   
+    pivot_longer(cols = everything(),
+                 names_to = "audience", 
+                 values_to = "frequency") %>% 
+    mutate(audience = factor(audience, levels = c("freq_engagement_municipal_govt", 
+"freq_engagement_county_govt",
+"freq_engagement_state_fed_agencies",
+"freq_engagement_neighborhood_associations",
+"freq_engagement_non_profits",
+"freq_engagement_private_sector", 
+"freq_engagement_faith_based", 
+"freq_engagement_other"))) %>%
+    mutate(frequency = factor(frequency, levels = c(
+      "Never", "Once or twice", "Monthly", "Weekly", "More than weekly"
+    ))) %>%
+ group_by(audience, frequency) %>%
+    summarise(n = n(), .groups = "drop") %>%
+    group_by(audience) %>%
+    mutate(
+      audience_total = sum(n),
+      percent = n / audience_total * 100,
+       label = paste0(round(percent, 1), "% (n = ", n, ")")
+    ) %>%
+    ungroup() %>%
+    select(-audience_total) 
+}
+
+
+engagement_frequency_df <- engagement_frequency(q1_evaluation_data_2, 
+"freq_engagement_municipal_govt", 
+"freq_engagement_county_govt",
+"freq_engagement_state_fed_agencies",
+"freq_engagement_neighborhood_associations",
+"freq_engagement_non_profits",
+"freq_engagement_private_sector", 
+"freq_engagement_faith_based", 
+"freq_engagement_other") 
+
+engagement_frequency_df <- engagement_frequency_df %>%
+mutate(audience = audience %>%
+           str_remove("^freq_engagement_") %>% 
+           str_replace_all("_", " ") %>%
+           str_to_title())
+
+
+#creating side by side bar chart on frequency by audience 
+
+engagement_frequency_plot <- ggplot(engagement_frequency_df, aes(x = frequency, y = n, fill = audience)) +
+geom_bar(stat = "identity", position = "dodge") +  
+  labs(
+    x = "Frequency", 
+    y = "Count", 
+    title = "Frequency of Engagement by Partner Type",
+    fill = "Partner Type"
+  ) +
+  geom_text(aes(label = n), position = position_dodge(width = 0.71), vjust = -0.5) + 
+  theme_minimal() +  
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1))
+engagement_frequency_plot
+
+ggsave("engagement_frequency_plot.png", engagement_frequency_plot,  width = 12,
+       height = 6)
 ```
+
+
+####Pie chart: Binary Community engagement 
+
 ```{r}
 #| include: true
 #| echo: false
-pie_chart <- evaluation_data_q1_25 %>% 
-  filter(!is.na(community_engagement_activities)) %>% 
-  group_by(community_engagement_activities) %>%
-  count() %>%
+
+community_engagement_binary <- q1_evaluation_data_connected %>% 
+  mutate(community_engagement_activities_binary = case_when(
+    is.na(community_engagement_activities) ~ "No", 
+     TRUE ~ "Yes"), 
+    community_engagement_activities_binary = factor(community_engagement_activities_binary, levels = c("Yes", "No"))) %>%  
+  group_by(community_engagement_activities_binary) %>%  count() %>% 
   ungroup() %>% 
-  mutate(percentage = n / sum(n) * 100,  # calculating the percentage
-         label = paste0(round(percentage, 0), "%"))  # rounding %
-
-# Creating a pie chart for types of engagement 
-ggplot(pie_chart, aes(x = "", y = n, fill = community_engagement_activities)) +
+  mutate(percentage = n / sum(n) * 100,
+         label = paste0(round(percentage, 0), "%")) 
+ 
+ # Creating a pie chart for types of engagement 
+community_engagement_binary_pie_chart <- 
+  ggplot(community_engagement_binary, aes(x = "", y = n, fill = community_engagement_activities_binary)) +
   geom_bar(stat = "identity", width = 1) +
   coord_polar("y", start = 0) +
   geom_text(aes(label = label), 
             position = position_stack(vjust = 0.5), 
-            color = "black", size = 3) +  
+            color = "white", size = 3) +  
+  theme_void() +  
+  labs(fill = "Community Engagement",
+       title = "") +
+  theme(legend.position = "right")
+
+community_engagement_binary_pie_chart
+
+ggsave("community_engagement_binary_pie_chart.png", community_engagement_binary_pie_chart,  width = 6,
+       height = 4)
+```
+
+
+##Methods of community engagement 
+```{r}
+methods_of_engagement_df <- q1_evaluation_data_connected %>% 
+  filter(!is.na(community_engagement_activities)) %>% 
+  separate_rows(community_engagement_activities, sep =",\\s*")  %>%
+  mutate(community_engagement_activities = case_when(
+    community_engagement_activities == "Workshops and training sessions " ~ "Workshops and training sessions", 
+   community_engagement_activities ==  "Other. Please specify" ~ "Other", 
+   TRUE ~ community_engagement_activities))  %>% 
+  group_by(community_engagement_activities) %>%
+  count() %>%
+  ungroup() %>% 
+  mutate(percentage = n / sum(n) * 100,
+         label = paste0(round(percentage, 0), "%")) 
+
+# Creating a pie chart for types of engagement 
+methods_of_engagement_pie_chart <- ggplot(methods_of_engagement_df, aes(x = "", y = n, fill = community_engagement_activities)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  geom_text(aes(label = label), 
+            position = position_stack(vjust = 0.5), 
+            color = "white", size = 3) +  
   theme_void() +  
   labs(fill = "Types of Community Engagement",
        title = "") +
   theme(legend.position = "right")
+
+methods_of_engagement_pie_chart
+
+ggsave("methods_of_engagement_pie_chart.png", methods_of_engagement_pie_chart,  width = 6,
+       height = 4)
+
+
+## types of "other" community engagement methods
+ q1_evaluation_data_connected %>% 
+  separate_rows(community_engagement_activities, sep =",\\s*")  %>%
+  filter(community_engagement_activities == "Other. Please specify") %>% 
+  select(community_engagement_activities_other)
 ```
 
-#### Is the engagement representative? 
 
+
+
+####!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+####!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+####                  OUTPUTS 
+####!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+####!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+#### Representative Engagement   
 ```{r}
-#| include: true
+#| include: false
 #| echo: false
-evaluation_data_q1_25 %>% 
- # filter(!is.na(representative)) %>% 
-  group_by(representative) %>%
-  count() %>%
+
+#Can only report on SBPs data 
+q1_evaluation_data_connected %>% 
+#  filter(sbp_geos != "geos") %>%
+  group_by(sbp_geos, representative) %>% 
+  count()%>%
     knitr::kable(
       format = "html")
-      
 ```
+
+
+####Stacked bar chart: Project development   
+```{r}
+ # project_development_df <-
+  project_development_plot <- q1_evaluation_data_connected %>% 
+  filter(!is.na(project_stage)) %>% 
+  separate_rows(project_stage, sep =",\\s*")  %>%
+  group_by(sbp_geos, project_stage) %>%
+  count() %>%
+  ungroup() %>% 
+  group_by(sbp_geos) %>% 
+  mutate(percentage = n / sum(n) * 100,
+         label = paste0(round(percentage, 0), "%"),
+         sbp_geos = case_when(
+         sbp_geos == "geos" ~ "GEOs",
+         sbp_geos == "sbp" ~ "SBP"),
+         project_stage = case_when(
+         project_stage == "Other. Please specify" ~ "Other", 
+         project_stage == "Data gathering "  ~ "Data gathering", 
+         project_stage == "Securing funding "  ~ "Securing funding", 
+          TRUE ~ project_stage),
+         project_stage = factor(project_stage, levels = c("Identifying stakeholders", "Aligning partners", "Data gathering", "Securing funding", "Project implementation", "Other"))) %>% 
+  ggplot(aes(x = sbp_geos, y = percentage, fill = project_stage, label = n)) +
+  geom_bar(stat = "identity", position = "stack") +
+  geom_text(position = position_stack(vjust = 0.5), color = "white", size = 3.5) +
+  coord_flip() +
+  labs(x = "Organization", 
+       y = "Percentage (%)", 
+       fill = "Project Stage", 
+       title = "Project Stage Distribution") +
+  theme_minimal()
+  
+
+ggsave("project_development_plot.png", project_development_plot,  width = 6,
+       height = 4)
+
+  
+```
+
 
 #### Types of Assistance Provided 
 
 ```{r}
 #| include: true
 #| echo: false
+ assistance_types_df <- q1_evaluation_data_connected %>% 
+  separate_rows(assistance_types, sep =",\\s*")  %>%
+  mutate(assistance_types = case_when(
+    assistance_types == "Other. Please specify" ~ "Other", 
+    TRUE ~ assistance_types),
+    sbp_geos = case_when(
+    sbp_geos == "geos" ~ "GEOs", 
+    sbp_geos == "sbp" ~ "SBP" ),
+    color = case_when(
+      sbp_geos == "GEOs" ~ "#8b2219",  
+      sbp_geos == "SBP" ~ "#f5c500")) %>% 
+  group_by(sbp_geos, assistance_types) %>% 
+  count(assistance_types, 
+        name = "count") 
 
-evaluation_data_q1_25 %>% 
-  select(assistance_types) %>%  
-  separate_rows(assistance_types, sep = ",\\s*")  %>%
-  count(assistance_types, name = "count") %>%
-  arrange(desc(count))%>%
-    knitr::kable(
-      format = "html")
-      
+
+#creating side by side bar chart on frequency by audience 
+
+assistance_frequency_plot <- 
+  ggplot(assistance_types_df, aes(x = assistance_types, y = count, fill = sbp_geos)) +
+  geom_bar(stat = "identity", position = "dodge") +  
+  scale_fill_manual(values = c("GEOs" = "#8b2219", "SBP" = "#f5c500")) + 
+  labs(
+    x = "Types of Assistance Provided", 
+    y = "Number of times assistance was provided", 
+    title = "Frequency of Assistance Type",
+    fill = "Organization"
+  ) +
+  geom_text(aes(label = count), position = position_dodge(width = 0.71), vjust = -0.5) + 
+  theme_minimal() +  
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1))
+
+assistance_frequency_plot
 ```
 
-#### What stage of project development are communities in?
+
+
+######CANNOT BE COMPLETED WITH CURRENT DATA (4.08.25)
+#### Number of referrals   
+#### Type of referrals  
+#### Result of Referrals   
+
+
+#### Number of funding opportunites IDENTIFIED
+
+```{r}
+
+#| include: true
+#| echo: false
+identified <- q1_evaluation_data_connected %>%
+  filter(!is.na(identified_funding_sources)) %>% 
+  mutate(identified_funding_buckets = case_when(
+    identified_funding_sources == "0" ~ "0",
+    identified_funding_sources == "1" ~ "1-5",
+     identified_funding_sources == "2" ~ "1-5",
+     identified_funding_sources == "3" ~ "1-5",
+     identified_funding_sources == "9" ~ "5-9",
+     identified_funding_sources == "15" ~ "10-15")) %>%  group_by(identified_funding_buckets) %>% 
+  count() 
+  
+
+
+identified_funding_sources_bar_graph <- identified %>%
+mutate(identified_funding_buckets = factor(identified_funding_buckets, levels = c("0","1-5", "5-9", "10-15")))  %>% 
+  ggplot(aes(x = identified_funding_buckets, y = n)) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  scale_x_discrete() +  
+  scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 2)) +  
+  labs(y = "Number of communities", 
+       x = "Number of Funding Sources Identified") + 
+  theme(axis.ticks.x = element_line(size = 1))  
+
+  identified_funding_sources_bar_graph
+           
+ 
+ggsave("identified_funding_sources_bar_graph.png", identified_funding_sources_bar_graph, height = 3, width = 5)
+
+```
+
+
+#### Number of funding opportunites submitted
 
 ```{r}
 #| include: true
 #| echo: false
-evaluation_data_q1_25 %>%
-  select(project_stage) %>%  
-  separate_rows(project_stage, sep = ",\\s*") %>%  # Split by commas and remove spaces
-# #  filter(project_stage %in% c("Aligning partners", "Securing funding", 
-#                                "Identifying stakeholders", 
-#                               "Data gathering","Project implementation", "Monitoring progress after implementation", "Other, please specify")) %>%
-  count(project_stage, name = "count") %>%
-  arrange(desc(count))%>%
-    knitr::kable(
-      format = "html")
-      
+
+#Counting NAs as 0 
+
+submitted <- q1_evaluation_data_connected %>% 
+  filter(sbp_geos != "geos") %>% 
+  mutate(submitted_funding_sources  = case_when(
+      is.na(submitted_funding_sources) ~ "0",
+      TRUE ~ submitted_funding_sources)) %>% 
+  group_by(submitted_funding_sources) %>% 
+  count()
+
+grant_applications_bar_graph <- submitted %>%
+mutate(submitted_funding_sources = factor(submitted_funding_sources, levels = c("0","1", "2", "5")))  %>% 
+  ggplot(aes(x = submitted_funding_sources, y = n)) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  scale_x_discrete() +  
+  scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 2)) +  
+  labs(y = "Number of communities", 
+       x = "Number of grant applications") + 
+  theme(axis.ticks.x = element_line(size = 1))  
+
+grant_applications_bar_graph
+ 
+ggsave("grant_applications_bar_graph.png", grant_applications_bar_graph, height = 3, width = 5)
 
 ```
 
-#### How many funding opportunites did you IDENTIFY?
-
-```{r}
-
-#| include: true
-#| echo: false
-evaluation_data_q1_25 %>% 
-  group_by(identified_funding_sources) %>% 
-#  filter(!is.na(identified_funding_sources)) %>%
-  count() %>% 
-  arrange(desc(n)) %>%
-    knitr::kable(
-      format = "html")
-      
-```
 
 #### How many funding opportunities are in DEVELOPMENT?
 
 ```{r}
 #| include: TRUE
 #| echo: false
-evaluation_data_q1_25 %>% 
+funding_in_dev <- q1_evaluation_data_connected %>% 
+  filter(sbp_geos == "sbp") %>%
   mutate (funding_opp_in_dev = case_when(
     funding_opp_in_dev == "I am currently working on applications for potentially 4 grants in Galveston County. Each partner currently has a 'project grant' and a 'planning grant' goal." ~ "4", 
    funding_opp_in_dev == "Berkeley County was impacted by Hurricane Debby Currently trying to meet with county to discuss Public Assistance and Fema Reimbursement," ~"1", 
    funding_opp_in_dev == "2, HMGP and BRIC" ~ "2", 
-   funding_opp_in_dev == "1 AARP Grant" ~ "1", 
+   funding_opp_in_dev == "1 AARP Grant" ~ "1",
+   is.na(funding_opp_in_dev) ~ "0",
    TRUE ~ as.character(funding_opp_in_dev))) %>% 
   group_by(funding_opp_in_dev) %>% 
-  count() %>% 
-  arrange(desc(n)) %>%
-    knitr::kable(
-      format = "html")
-      
-```
+  count() 
 
-#### How many funding opportunities were SUBMITTED?
+funding_in_dev_bar_graph <- funding_in_dev %>%
+mutate(submitted_funding_sources = factor(funding_opp_in_dev, levels = c("0","1", "2", "4", "8")))  %>% 
+  ggplot(aes(x = submitted_funding_sources, y = n)) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  scale_x_discrete() +  
+  scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 2)) +  
+  labs(y = "Number of communities", 
+       x = "Number of grants in development") + 
+  theme(axis.ticks.x = element_line(size = 1))  
 
-```{r}
-#| include: TRUE
-#| echo: false
-evaluation_data_q1_25 %>% 
-  group_by(submitted_funding_sources) %>% 
-  count() %>% 
-  arrange(desc(n)) %>%
-    knitr::kable(
-      format = "html")
-      
-```
-
-#### How many funding opportunities were you able to ACCESS?
-
-```{r}
-#| include: true
-#| echo: false
-evaluation_data_q1_25 %>% 
-  group_by(funding_accessing) %>% 
-  count() %>% 
-  arrange(desc(n)) %>%
-    knitr::kable(
-      format = "html")
-      
+funding_in_dev_bar_graph
+ 
+ggsave("funding_in_dev_bar_graph.png", funding_in_dev_bar_graph, height = 3, width = 5)
 ```
 
 #### Where do communities fall along the Steps to Resilience?
@@ -535,31 +1717,129 @@ evaluation_data_q1_25 %>%
 ```{r}
 #| include: true
 #| echo: false
-evaluation_data_q1_25 %>% 
-  group_by(steps_to_resilience) %>% 
-  count() %>% 
-  arrange(desc(n)) %>%
-    knitr::kable(
-      format = "html")
+rsteps_df <- q1_evaluation_data_connected %>% 
+  filter(!is.na(steps_to_resilience)) %>% 
+mutate(num_steps_to_resilience = case_when(steps_to_resilience == 
+  "Understand exposure – community has identified the hazards that could harm their assets and evaluated the potential impacts of those hazards." ~ "1",
+ steps_to_resilience == "Assess vulnerability and risk – community has plotted the likelihood of a hazard occurring against the potential magnitude of losses." ~ "2",  
+ steps_to_resilience == "Investigate options – community has brainstormed a list of possible actions with their community and checked what others have done." ~ "3",
+ steps_to_resilience == "Prioritize and Plan – community has evaluated the costs, benefits, and their capacity to implement the solutions they identified. As well as, ranked the expected value of implementing each action, and integrated the highest-value actions into a step-by-step plan." ~ "4",
+ steps_to_resilience == "Take Action – community has implemented the plan that was created." ~ "5", 
+ TRUE ~ steps_to_resilience), 
+ num_steps_to_resilience = factor(num_steps_to_resilience, levels = c("1", "2", "3", "4", "5"))) %>% 
+group_by(num_steps_to_resilience) %>% count() 
+ 
+
+rsteps_df_bar_graph <- ggplot(rsteps_df, aes(x = num_steps_to_resilience, y = n)) +
+geom_bar(stat = "identity", position = "dodge") +  
+  labs(
+    x = "Steps to Resilience", 
+    y = "Number of Communities", 
+    title = ""
+  ) +
+  geom_text(aes(label = n), position = position_dodge(width = 0.71), vjust = -0.5, size =4 ) + 
+  theme_minimal() 
+
+
+rsteps_df_bar_graph
+
+ggsave("rsteps_df_bar_graph.png", rsteps_df_bar_graph,  width = 12,
+       height = 6)
       
 ```
 
+
 #### Resilience Maturity Model
-Question: How should this be disaggregated? 
+
+```{r}
+#| include: true
+#| echo: false
+  
+rmm_df <- q1_evaluation_data_2 %>% 
+ mutate(rmm_leadership = factor(rmm_leadership, levels = c("Minimal support", "Some support", "Moderate support", "Strong support")),
+        rmm_organized_efforts = factor(rmm_organized_efforts, levels = c("Somewhat unorganized", "Organized", "Very unorganized")),
+        rmm_decision_making = factor(rmm_decision_making, levels = c("Somewhat inclusive and transparent" ,"Moderately inclusive and transparent")),
+        rmm_collaboration = factor(rmm_collaboration, levels = c("Limited collaboration", "Some collaboration", "Strong collaboration")), 
+        rmm_risk = factor(rmm_risk, levels = c("Somewhat well", "Well", "Very well")),
+        rmm_goals = factor(rmm_goals, levels = c("Limited and unclear goals", "Some specific goals in place", "Clear, coordinated long term goals")), 
+        rmm_soultions = factor(rmm_soultions, levels= c("Some specific goals in place",  "Limited and unclear goals")),
+        rmm_systems = factor(rmm_systems, levels = c("Somewhat effective")), 
+        rmm_measurements = factor(rmm_measurements, levels = c("No measurement practices in place", "A few specific practices for measuring progress", "Some unclear measurement practices")))  %>%
+  rename("Resilience Leadership" = "rmm_leadership",
+"Organizing Efforts" = "rmm_organized_efforts",
+"Decision-Making" = "rmm_decision_making",
+"Collaboration" = "rmm_collaboration",
+"Understanding Risk" = "rmm_risk",
+"Resilience Goals" = "rmm_goals",
+"Resilience Solutions" = "rmm_soultions",
+"Systems thinking" = "rmm_systems",
+"Measturements" = "rmm_measurements") 
+
+rmm_vars <- c("Resilience Leadership",
+"Organizing Efforts" ,
+"Decision-Making",
+"Collaboration" ,
+"Understanding Risk" ,
+"Resilience Goals",
+"Resilience Solutions" ,
+"Systems thinking" ,
+"Measturements") 
+  
+
+make_rmm_pie_charts <- function(data, variables) {
+  pie_charts <- list()
+  for (var in variables) {
+    var_sym <- sym(var)
+    pie_df <- data %>%
+      filter(!is.na(!!var_sym)) %>%
+      group_by(!!var_sym) %>%
+      count() %>%
+      ungroup() %>%
+      mutate(percentage = n / sum(n) * 100,
+             label = paste0(round(percentage, 0), "%"))
+    
+chart <- ggplot(pie_df, aes(x = "", y = n, fill = !!var_sym)) +
+    geom_bar(stat = "identity", width = 1) +
+    coord_polar("y", start = 0) +
+    geom_text(aes(label = label), 
+                position = position_stack(vjust = 0.5), 
+                color = "white", size = 3) +  
+      theme_void() +  
+      labs(fill = var,
+           title = paste(var)) +
+      theme(legend.position = "right")
+      pie_charts[[var]] <- chart}
+      return(pie_charts)}
+ 
+rmm_pie_charts <- make_rmm_pie_charts(rmm_df, rmm_vars)
+
+
+for (chart in rmm_pie_charts) {
+  print(chart)
+}
+
+pie_charts <- names(rmm_pie_charts) %>%
+  gsub(" ", "_", .) %>%
+  paste0(".png") 
+
+# Saving plots
+walk2(
+  .x = rmm_pie_charts,
+  .y = pie_charts,
+  ~ ggsave(filename = .y, plot = .x, width = 6, height = 6, dpi = 300)
+)
+
+
+```
+
+
+
 
 ```{r}
 #| include: true
 #| echo: false
 #resilience maturity model 
-#rmm_leadership
-#rmm_organized_efforts
-# rmm_decision_making
-# rmm_collaboration
-# rmm_risk
-# rmm_goals
-# rmm_soultions
-# rmm_systems 
-# rmm_measurements
+
 
 resilience_matruity_model <- function(data, ...) {
   data %>%
@@ -571,20 +1851,95 @@ resilience_matruity_model <- function(data, ...) {
 }
 
 
- resilience_matruity_model(evaluation_data_q1_25, "rmm_leadership",
-"rmm_organized_efforts",
-"rmm_decision_making",
-"rmm_collaboration",
-"rmm_risk",
-"rmm_goals",
-"rmm_soultions",
-"rmm_systems", 
-"rmm_measurements") %>%
-    knitr::kable(
-      format = "html")
-      
+
+
+rmm_graph <- ggplot(resilience_matruity_model_df, aes(x = value, y = n)) +
+  geom_col(fill = "steelblue") + 
+  facet_wrap(~ variable, scales = "free_x", labeller = labeller(variable = custom_labels)) +
+  scale_y_continuous(
+    labels = number_format(accuracy = 1)  
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),  # Removes major grid lines
+    axis.text.x = element_text(size = 5),  # Smaller font and rotated
+    strip.text.x = element_text(size = 8)  # Optional: change the facet titles font size
+  ) +
+  labs(
+    x = "Resilience Maturity Model",
+    y = "Number of communities")
+
+rmm_graph
+
+rmm_pie_charts <- ggplot(resilience_matruity_model_df, aes(x = "", y = n, fill = value)) +
+   facet_wrap(~ variable, scales = "free_x", labeller = labeller(variable = custom_labels)) +
+   geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  geom_text(aes(label = n), 
+            position = position_stack(vjust = 0.5), 
+            color = "white", size = 3) +  
+  theme_void() +  
+  labs(fill = "Resilience Maturity Model Measurements",
+       title = "") +
+  theme(legend.position = "right") 
+
+
+rmm_pie_charts
+  
+
+ggsave("rmm_graph.png", rmm_graph, width = 10, height = 10)
 
 ```
+
+
+#### How many funding opportunities were you able to ACCESS?
+
+```{r}
+#| include: true
+#| echo: false
+q1_evaluation_data_connected %>% 
+  filter(!is.na(funding_accessing)) %>% 
+  group_by(funding_accessing) %>% 
+  count() %>% 
+  arrange(desc(n)) %>%
+    knitr::kable(
+      format = "html")
+
+#no one entered the amount of funding accessed 
+# q1_evaluation_data_connected %>% 
+# #  filter(!is.na(funding_accessed_amount)) %>% 
+#   group_by(funding_accessed_amount) %>% 
+#   count() %>% 
+#   arrange(desc(n)) %>%
+#     knitr::kable(
+#       format = "html")
+      
+```
+
+#### How many funding opportunities were you able to INFLUENCE?
+
+```{r}
+#| include: true
+#| echo: false
+q1_evaluation_data_connected %>% 
+  filter(!is.na(funding_influence)) %>% 
+  group_by(funding_influence) %>% 
+  count() %>% 
+  arrange(desc(n)) %>%
+    knitr::kable(
+      format = "html")
+
+#no one entered the amount of funding accessed 
+# q1_evaluation_data_connected %>% 
+# #  filter(!is.na(funding_influence_amount)) %>% 
+#   group_by(funding_influence_amount) %>% 
+#   count() %>% 
+#   arrange(desc(n)) %>%
+#     knitr::kable(
+#       format = "html")
+      
+```
+
 
 #### Do communities plan to hire for the position? 
 
@@ -592,12 +1947,47 @@ resilience_matruity_model <- function(data, ...) {
 #| include: true
 #| echo: false
 
-evaluation_data_q1_25 %>% 
-  group_by(futrue_hire) %>% 
-  count() %>% 
-  arrange(desc(n)) %>%
-    knitr::kable(
-      format = "html")
-      
+future_hire_df <- q1_evaluation_data_connected %>% 
+  group_by(future_hire) %>% 
+  filter(!is.na(future_hire)) %>%
+  filter(sbp_geos == "sbp") %>% #no data for GEOS
+    summarize(
+      n = n(),  
+      .groups = "drop") %>%
+    mutate(percent = n / sum(n) * 100,
+            label = paste0(round(percent, 0), "%")) %>%  
+    ungroup() %>%
+  mutate( future_hire = factor(future_hire, levels = c("Yes", "No"))) 
+  
+future_hire_pie_chart <-
+  ggplot(future_hire_df, aes(x = "", y = n, fill = future_hire)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  geom_text(aes(label = label), 
+            position = position_stack(vjust = 0.7), 
+            color = "white", size = 4) +  
+  theme_void() +  
+  labs(fill = "Plans to hire full-time resilience fellow",
+       title = "") +
+  theme(legend.position = "right")
+future_hire_pie_chart
 
+future_hire_bar_chart <-
+  ggplot(future_hire_df, aes(x = future_hire, y = percent, fill = future_hire)) +
+  geom_bar(stat = "identity", width = .5) +
+  geom_text(aes(label = label),
+            vjust = -0.5,
+            color = "black",
+            size = 4) +
+  labs(x = "Plans to hire full-time resilience fellow",
+       y = "Percentage of communities") +
+scale_y_continuous(breaks = seq(0, 100, by = 25), limits = c(0, 100)) 
+
+future_hire_bar_chart
+
+ggsave("future_hire_bar_chart.png", future_hire_bar_chart,  width = 5,
+       height = 3)
 ```
+
+
+
