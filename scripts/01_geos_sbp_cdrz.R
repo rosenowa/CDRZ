@@ -10,6 +10,7 @@
 # (1) Housekeeping
 library(tidyverse)
 library(readxl)
+library(janitor)
 library(here)
 library(janitor)
 library(tidylog)
@@ -193,7 +194,7 @@ acs_demographic_vars <- c(
 acs_demographic_df_raw <- get_acs(
   geography = "tract",
   variables = acs_demographic_vars,
-  year = 2022,
+  year = 2023,
   state = states,
   survey = "acs5",
   geometry = FALSE,
@@ -263,7 +264,7 @@ acs_demographics_clean <- acs_demographic_df_raw %>%
     per_gross_rent_30_35 = gross_rent_30_35 / gross_rent_est_tot, 
     per_gross_rent_35_plus = (gross_rent_35_40 + gross_rent_40_50 + gross_rent_50_plus)/ gross_rent_est_tot,
     per_rent_burden = (gross_rent_30_35 + gross_rent_35_40 + gross_rent_40_50 + gross_rent_50_plus)/ gross_rent_est_tot
-  ) %>% 
+  ) #%>% 
   select(geoid, state_name, state_fips, tract_fips, total_pop, 
          median_hh_income,
          per_non_hisp_white:per_hisp,
@@ -466,18 +467,18 @@ acs_demographic_county_raw <- get_acs(
 ################################################################################
 
 cdrz_all_data <- acs_cdrz_geography %>%
-  # Joining with rural-urban classification 
+  # Joining with rural-urbanclassification 
   left_join(rural_urban, by = "county_state_code") %>%
   # Joining with county capacity 
   left_join(county_capacity %>% select(rural_capacity_index, county_state_code, 
                                        percent_of_counties_nationwide_with_higher_capacity), 
-            by = "county_state_code") %>% 
+            by = "county_state_code") #%>% 
   # Joining with NRI Index
-  left_join(nri_index_tracts %>% select(nri_id, risk_score, risk_ratng,
-                                            eal_score, eal_ratng, sovi_score, sovi_ratng, resl_score, resl_ratng),
-                  by = "nri_id")  %>% 
+  # left_join(nri_index_tracts %>% select(nri_id, risk_score, risk_ratng,
+  #                                           eal_score, eal_ratng, sovi_score, sovi_ratng, resl_score, resl_ratng),
+  #                 by = "nri_id")  %>% 
   #joining ACS county population 
-  left_join(acs_demographic_county_raw %>% select(total_pop_county, county_state_code), 
+  #left_join(acs_demographic_county_raw %>% select(total_pop_county, county_state_code), 
             by = "county_state_code") 
             
   # # Joining with first street data 
@@ -492,6 +493,8 @@ cdrz_all_data <- acs_cdrz_geography %>%
 ################################################################################
 ################################################################################
 ###########################    SBP + GEOS FOOTPRINT    #########################
+################################################################################
+################################################################################
 ################################################################################
 
 partner_cdrz_all_data <- cdrz_all_data %>% 
@@ -558,7 +561,14 @@ partner_cdrz_all_data <- cdrz_all_data %>%
       host_entity_sbp == "Berkeley-Charleston-Dorchester Council of Government (BCDCOG)" ~ 1), 
     
     #name of SBP Fellow (until we have the list of the fellow names)
-    fellow_name_sbp = "NA", 
+    fellow_name_sbp = case_when(
+    sbp == "1" & state == "Florida" ~ "Kurt Williams",
+    sbp == "1" & state == "South Carolina" ~ "Shayla Jefferson",
+    sbp == "1" & state == "Alabama" ~ "Madeleine Dotson",
+    sbp == "1" & host_entity_sbp == "Southeast Texas Regional Planning Commission" ~ "No staff",
+    sbp == "1" & host_entity_sbp == "Texas State's General Land Office (GLO)" ~ "Will McCrory",
+    host_entity_sbp == "Southern Mississippi Planning District  (co-placed with Water Insitute of the Gulf)" ~ "No staff",
+    TRUE ~ NA_character_), 
     
     # SBP Fellow Group Managers
     fellows_group_manager_sbp = case_when(
@@ -601,27 +611,36 @@ partner_cdrz_all_data <- cdrz_all_data %>%
     
     #Groups defined by GEOs
     geos_community_cluster = case_when(
-      geos == "1" & state_abbreviation == "NC" & county_name == "Beaufort County" ~ "Beaufort Group",
-      geos == "1" & state_abbreviation == "NC" & county_name == "Craven County" ~ "Craven Group",
-      geos == "1" & state_abbreviation == "NC" & county_name == "Dare County" ~ "Dare Group",
-      geos == "1" & state_abbreviation == "NC" & county_name == "Hyde County" ~ "Hyde Group",
-      geos == "1" & state_abbreviation == "SC" & county_name == "Charleston County" ~ "Charleston Group",
-      geos == "1" & state_abbreviation == "SC" & county_name == "Dorchester County" ~ "Dorchester Group",
-      geos == "1" & state_abbreviation == "GA" & county_name == "Chatham County" ~ "Chatham Group",
-      geos == "1" & state_abbreviation == "GA" & county_name == "Liberty County" ~ "Liberty Group",
-      geos == "1" & state_abbreviation == "FL" & county_name == "St. Lucie County" ~ "St. Lucie Group",
-      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011030500, 12011030601) ~ "Pompano Beach",
-      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011050207, 12011050208) ~ "Oakland & Nth Andrews Parks",
-      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011010307 ~ "Deerfield Beach",
-      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011042502 ~ "Ft Lauderdale",
-      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011110600 ~ "Dania Beach",
-      geos == "1" & state_abbreviation == "FL" & county_name == "Miami-Dade County" & geoid %in% c(12086009010, 12086009040, 12086009102) ~ "Doral Group",
-      geos == "1" & state_abbreviation == "FL" & county_name == "Palm Beach County" ~ "Palm Beach Group",
-      geos == "1" & state_abbreviation == "FL" & county_name == "Bay County" ~ "Bay Group",
-      geos == "1" & state_abbreviation == "FL" & county_name == "Washington County" ~ "Washington Group",
-      geos == "1" & state_abbreviation == "FL" & county_name == "Hendry County" ~ "Hendry Group",
-      geos == "1" & state_abbreviation == "FL" & county_name == "Collier County" ~ "Collier Group", 
-      TRUE ~ coalesce(nickname_geos, paste((county_name), "Group"))),
+      ## SOUTH CAROLINA  (5 grpups)
+      geos == "1" & state_abbreviation == "SC" & county_name == "Beaufort County" ~ "Beaufort (Bluffton) County, SC",
+      geos == "1" & state_abbreviation == "SC" & county_name == "Berkeley County" ~ "Berkeley (Goose Creek) County, SC",
+      geos == "1" & state_abbreviation == "SC" & county_name == "Charleston County" ~ "Charleston (Nth Charleston) County, SC",
+      geos == "1" & state_abbreviation == "SC" & county_name == "Dorchester County" ~ "Dorchester (Summerville) County, SC",
+      geos == "1" & state_abbreviation == "SC" & county_name == "Horry County" ~ "Horry (Myrtle Beach) County, SC",
+      
+      ## GEORGIA (6 groups- but only two have nicknames)
+      geos == "1" & state_abbreviation == "GA" & county_name == "Chatham County" & geoid %in% c(13051004001,13051004002,
+                                                                                                13051010504, 13051980000,
+                                                                                                13051010601, 13051011700, 13051011900)  ~ "Chatham County (Census Tract 40.01, Garden City, NW Savannah, SE Historic District), GA",
+      geos == "1" & state_abbreviation == "GA" & county_name == "Bulloch County" ~ "Bulloch (Statesboro) County, GA",
+      # geos == "1" & state_abbreviation == "GA" & county_name == "Liberty County" ~ "Liberty Group",
+      
+      #FLORIDA (16 groups)
+      geos == "1" & state_abbreviation == "FL" & county_name == "Brevard County" ~ "Brevard County (City of Melbourne), FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Indian River County" ~ "Indian River County (Indian River/Fellsmere), FL", 
+      geos == "1" & state_abbreviation == "FL" & county_name == "Martin County" ~ "Martin County (City of Stuart), FL", 
+      geos == "1" & state_abbreviation == "FL" & county_name == "St. Lucie County" ~ "St. Lucie (Fort Pierce) County, FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011010307 ~ "Broward (Deerfield Beach) County, FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011030500, 12011030601) ~ "Broward (Pompano Beach) County, FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011042502 ~ "Broward (Ft. Lauderdale) County, FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid %in% c(12011050207, 12011050208) ~ "Broward (Oakland & Nth Andrews Parks) County, FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Broward County" & geoid == 12011110600 ~ "Broward (Dania Beach) County, FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Miami-Dade County" & geoid %in% c(12086009010, 12086009040, 12086009102) ~ "Miami-Dade (Doral & Hialeach) County, FL", 
+      geos == "1" & state_abbreviation == "FL" & county_name == "Miami-Dade County" & geoid == 12086011500 ~ "Miami-Dade (Homestead & Everglades) County, FL",
+      geos == "1" & state_abbreviation == "FL" & county_name == "Palm Beach County" ~ "Palm Beach (Atlantis, FL",     #Palm Beach (Atlantis, Lantana, & Boca Raton) County, FL"
+      geos == "1" & state_abbreviation == "FL" & county_name == "Pinellas County" ~ "Pinellas County (Clearwater City), FL",
+      geos == "1" ~ paste(county_name, state_abbreviation, sep = ", "),
+      TRUE ~ NA_character_),
     
     
     # Navigator name Defined by GEOs
@@ -640,7 +659,7 @@ partner_cdrz_all_data <- cdrz_all_data %>%
     # GEOs Supporting Staff
     supporting_staff_geos = "NA", 
     
-    #geos community unique ID - Helps to determine how many communities a naviagtor will oversee 
+    #geos community unique ID - Helps to determine how many communities a navigator will oversee 
     unique_id_geos = dense_rank(geos_community_cluster), 
     
     #sbp community unique ID - Helps to determine how many communities a fellows will oversee 
@@ -651,8 +670,41 @@ partner_cdrz_all_data <- cdrz_all_data %>%
       geos == "1" & state_abbreviation == "GA" ~ "Georgia Conservancy", 
       geos == "1" & state_abbreviation == "NC" ~ "North Carolina Office of Recovery and Resiliency",
       geos == "1" & state_abbreviation == "SC" ~ "Shi Institute for Sustainable Communities at Furman University",
-      geos == "1" & state_abbreviation == "FL" ~ "Florida Climate Institute"))
+      geos == "1" & state_abbreviation == "FL" ~ "Florida Climate Institute"), 
+    
+    sbp_geos = case_when(
+      sbp == "1" & geos == "0" ~ "sbp",
+      geos == "1" & sbp == "0" ~ "geos",
+      geos == "1" & sbp == "1" ~ "both")) 
 
+# partner_cdrz_all_data <- partner_cdrz_all_data %>% st_drop_geometry()
+# write.csv(partner_cdrz_all_data, "partner_cdrz_all_data.csv")
+
+
+cdrz_count <- partner_cdrz_all_data %>% 
+  st_drop_geometry() %>% 
+  group_by(sbp_geos, state) %>%
+  count()
+
+sbp_communities_cdrz <- partner_cdrz_all_data %>% 
+  st_drop_geometry() %>% 
+  filter(sbp_geos %in% c("sbp", "both")) %>%
+  group_by(state, county, sbp_community_cluster) %>%
+  summarise(
+    cdrz = n())%>%
+  adorn_totals("row")
+
+geos_communities_cdrz <- partner_cdrz_all_data %>% 
+  st_drop_geometry() %>% 
+  filter(sbp_geos %in% c("geos", "both")) %>%
+  group_by(state, county, geos_community_cluster) %>%
+  summarise(
+    cdrz = n()) %>%
+  adorn_totals("row")
+
+states = partner_cdrz_all_data %>% filter(!is.na(sbp_geos)) %>% 
+  group_by(state) %>% 
+  count()
 
 ##########################################################################################
 ##########################################################################################
@@ -708,6 +760,12 @@ final_table <- cdrzs_tracts_places_clean %>%
             ~ first(.),
             .names = "{.col}")) %>% 
   select(sbp_geos_footprint, geoid, county_name, intersecting_places, everything())
+
+geos <- final_table %>% filter(sbp_geos_footprint != "SBP") %>% 
+  group_by(state, geos_community_cluster) %>% 
+  summarize(
+  number_of_CDRZs= n()
+  )
 
  #write_xlsx(final_table, "final_table.xlsx")
 
@@ -805,23 +863,63 @@ all_cdrz_map <- ggplot() +
             mutate(group = "CDRZs Outside the SPB and GEOs Footprint"),
           mapping = aes(color = group),
           fill = "NA") +
-  geom_sf(cdrz_places %>% 
-          tigris::shift_geometry() %>%
-          mutate(group = "Surrounding Places"),
-          mapping = aes(color = group),
-          fill = "NA",
-          size = 0.1) +
+  # geom_sf(cdrz_places %>% 
+  #         tigris::shift_geometry() %>%
+  #         mutate(group = "Surrounding Places"),
+  #         mapping = aes(color = group),
+  #         fill = "NA",
+  #         size = 0.1) +
   scale_color_manual(values = c(
-    "GEOs CDRZs" = "#78C26D",
-    "CDRZs Outside the SPB and GEOs Footprint" = "#FCCB41",
-    "SBP CDRZs" = "#46ABDB",
-    "Surrounding Places" = "#E46AA7"
-  ), 
-  name = "Key",
-  labels = c("CDRZs Outside the SPB and GEOs Footprint", "GEOs CDRZs", "SBP CDRZs","Surrounding Places")) +
+    "GEOs CDRZs" = "#FCCB41",
+    "CDRZs Outside the SPB and GEOs Footprint" = "#E46AA7",
+    "SBP CDRZs" = "#46ABDB"#,
+   # "Surrounding Places" = "#E46AA7"
+  )) + 
+  # name = "Key",
+  # labels = c("CDRZs Outside the SPB/GEOs Footprint", "GEOs CDRZs", "SBP CDRZs")) + #"Surrounding Places"
+  # theme(
+  #   legend.text = element_text(size = 4),
+  #   legend.title = element_text(size = 4),
+  #   legend.key.size = unit(0.3, "cm"),
+  #   legend.spacing.y = unit(0.2, "cm")
+  # )+
+  theme(legend.position = "none") +
   theme_urbn_map() 
 print(all_cdrz_map)
-ggsave("all_cdrz_map.png", plot = all_cdrz_map, width = 8, height = 6, dpi = 300)
+ggsave("all_cdrz_map.png", plot = all_cdrz_map, width = 6, height = 4, dpi = 300)
+
+
+all_cdrz_map <- ggplot() + 
+  geom_sf(us_states,
+          mapping = aes(),
+          fill = "transparent",
+          color = "#ADABAC") +
+  
+  geom_sf(partner_cdrz_all_data %>% filter(sbp_geos == "geos"),
+          mapping = aes(),
+          color = "#FCCB41",
+          fill = "#FCCB41") +
+  
+  geom_sf(partner_cdrz_all_data %>% filter(sbp_geos == "sbp"),
+          mapping = aes(),
+          color = "#46ABDB",
+          fill = "#46ABDB") +
+  
+  geom_sf(partner_cdrz_all_data %>% filter(sbp_geos == "both"),
+          mapping = aes(),
+          color = "#78C26D",
+          fill = "#78C26D") +
+  
+  geom_sf(partner_cdrz_all_data %>% 
+            filter(is.na(sbp_geos)) %>% 
+            tigris::shift_geometry(),
+          mapping = aes(),
+          color = "#E46AA7",
+          fill = "#E46AA7",
+          size = 0.1) +
+  theme_urbn_map()
+all_cdrz_map
+ggsave("all_cdrz_map.png", plot = all_cdrz_map, width = 6, height = 4, dpi = 1000)
 
 ###################################################################################
 ###################################################################################
@@ -846,32 +944,33 @@ sbp_geos_map_places <- ggplot() +
           mapping = aes(),
           fill = "#D5D5D4",
           color = "#ADABAC") +
-  geom_sf(cdrzs_tracts_places_clean %>% filter(geos == 1)%>%
+  geom_sf(cdrzs_tracts_places_clean %>% filter(sbp_geos == "geos")%>%
             mutate(group = "GEOs CDRZs"),
           mapping = aes(color = group),
-          fill = "NA") +
-  geom_sf(cdrzs_tracts_places_clean %>% filter(sbp == 1) %>%
+          fill = "#FCCB41") +
+  geom_sf(cdrzs_tracts_places_clean %>% filter(sbp_geos == "sbp") %>%
             mutate(group = "SBP CDRZs"),
           mapping = aes(color = group),
-          fill = "NA") +
-  geom_sf(geos_sbp_cdrzs_places %>%
-            mutate(group = "Surrounding Places"),
+          fill = "#46ABDB")  +
+  geom_sf(cdrzs_tracts_places_clean %>% filter(sbp_geos == "both") %>%
+            mutate(group = "Overlapping CDRZs"),
           mapping = aes(color = group),
-          fill = "NA",
-          size = 0.01) +
+          fill = "#78C26D")  +
+  #geom_sf(geos_sbp_cdrzs_places %>%
+          #   mutate(group = "Surrounding Places"),
+          # mapping = aes(color = group),
+          # fill = "#E46AA7",
+          # size = 0.01) +
   scale_color_manual(values = c(
-    "GEOs CDRZs" = "#78C26D",
+    "GEOs CDRZs" = "#FCCB41",
     "SBP CDRZs" = "#46ABDB",
-   "Surrounding Places" = "#E46AA7"), 
-  name = "Key",
-  labels = c( "GEOs CDRZs", "SBP CDRZs", "Surrounding Places")) +
+    "Overlapping CDRZs" = "#78C26D")) + 
+ #  "Surrounding Places" = "#E46AA7"), 
+  #name = "Key",
+  #labels = c( "GEOs CDRZs", "SBP CDRZs", "Overlapping CDRZs", "Surrounding Places")) +
   theme_urbn_map() 
 
-# Print the sbp_geos_map_only_cdrz map
-print(sbp_geos_map_only_cdrz)
-ggsave("sbp_geos_map_only_cdrz.png", plot = sbp_geos_map_only_cdrz, width = 8, height = 6, dpi = 300)
 
-# Print the sbp_geos_map_places map
 print(sbp_geos_map_places)
 ggsave("sbp_geos_map_places.png", plot = sbp_geos_map_places, width = 8, height = 6, dpi = 300)
 
@@ -886,13 +985,13 @@ ggsave("sbp_geos_map_places.png", plot = sbp_geos_map_places, width = 8, height 
 ##########################################################################################
 ##########################################################################################
 
-combined_footprint_row <- all_cdrzs_full_data %>% 
-  filter(!(overlapping == "Partner overlap" & partner == "sbp")) %>%  #removing duplicates
+combined_footprint_row <- partner_cdrz_all_data %>% 
+  filter(!is.na(sbp_geos)) %>% 
   summarize(
     Jurisdiction = "Combined Footprint", 
     cdrz_count = n(),
     total_pop = sum(total_pop),
-    total_pop_county = sum(total_pop_county, na.rm = TRUE),
+    #total_pop_county = sum(total_pop_county, na.rm = TRUE),
     per_65_over = mean(per_65_over, na.rm = TRUE),
     per_non_hisp_white = mean(per_non_hisp_white, na.rm = TRUE),
     per_non_white = mean(per_non_white, na.rm = TRUE),
@@ -900,13 +999,13 @@ combined_footprint_row <- all_cdrzs_full_data %>%
     per_broadband = mean(per_broadband, na.rm = TRUE), 
     per_rural = sum(urban_designation == "rural")/n()) 
 
-geos_footprint_row <- all_cdrzs_full_data %>% 
-  filter(partner == "geos") %>%  
+geos_footprint_row <- partner_cdrz_all_data %>% 
+  filter(sbp_geos %in% c("geos", "both")) %>%  
   summarize(
     Jurisdiction = "GEOs Footprint", 
     cdrz_count = n(),
     total_pop = sum(total_pop),
-    total_pop_county = sum(total_pop_county, na.rm =TRUE),
+    #total_pop_county = sum(total_pop_county, na.rm =TRUE),
     per_65_over = mean(per_65_over, na.rm = TRUE),
     per_non_hisp_white = mean(per_non_hisp_white, na.rm = TRUE),
     per_non_white = mean(per_non_white, na.rm = TRUE),
@@ -914,8 +1013,8 @@ geos_footprint_row <- all_cdrzs_full_data %>%
     per_broadband = mean(per_broadband, na.rm = TRUE), 
     per_rural = sum(urban_designation == "rural")/n()) 
 
-sbp_footprint_row <- all_cdrzs_full_data %>% 
-  filter(partner == "sbp") %>%  
+sbp_footprint_row <- partner_cdrz_all_data %>% 
+  filter(sbp_geos %in% c("sbp", "both")) %>%    
   summarize(
     Jurisdiction = "SBP Footprint", 
     cdrz_count = n(),
@@ -928,7 +1027,7 @@ sbp_footprint_row <- all_cdrzs_full_data %>%
     per_rural = sum(urban_designation == "rural")/n())
 
 
-all_cdrzs_row_total <- all_cdrzs_full_data %>%
+all_cdrzs_row_total <- partner_cdrz_all_data %>%
   summarize(
     Jurisdiction = "All CDRZs Footprint", 
     cdrz_count = n(),
